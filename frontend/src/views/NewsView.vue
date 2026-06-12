@@ -6,15 +6,15 @@ import { useNewsStore } from '@/stores/newsStore'
 const news = useNewsStore()
 const router = useRouter()
 
-const SOURCE_META: Record<string, { label: string; color: string; key: string }> = {
-  'hackernews': { label: 'HN',        color: 'var(--hn)',     key: 'hn' },
-  'openai':     { label: 'OpenAI',    color: 'var(--openai)', key: 'openai' },
-  'google_ai':  { label: 'Google AI', color: 'var(--google)', key: 'google' },
-  'mit':        { label: 'MIT',       color: 'var(--mit-fg)', key: 'mit' },
+const SOURCE_META: Record<string, { label: string; color: string; key: string; bg: string }> = {
+  'hackernews': { label: 'HN',        color: 'var(--hn)',     key: 'hn',     bg: 'rgba(224,93,0,0.08)' },
+  'openai':     { label: 'OpenAI',    color: 'var(--openai)', key: 'openai', bg: 'rgba(13,138,106,0.08)' },
+  'google_ai':  { label: 'Google AI', color: 'var(--google)', key: 'google', bg: 'rgba(26,115,232,0.08)' },
+  'mit':        { label: 'MIT',       color: 'var(--mit-fg)', key: 'mit',    bg: 'rgba(155,28,46,0.08)' },
 }
 
 function sourceMeta(source: string) {
-  return SOURCE_META[source] || { label: source, color: 'var(--brand)', key: 'default' }
+  return SOURCE_META[source] || { label: '?', color: 'var(--brand)', key: 'default', bg: 'var(--bg-elevated)' }
 }
 
 function timeAgo(dateStr: string): string {
@@ -90,7 +90,9 @@ function onScroll(e: Event) {
       <template v-if="news.newsList.length > 0">
         <article class="news-card news-card--hero" @click="router.push(`/news/detail/${news.newsList[0].id}`)">
           <img v-if="news.newsList[0].image" :src="news.newsList[0].image" class="hero-img" loading="lazy" />
-          <div v-else class="hero-img hero-img--empty"></div>
+          <div v-else class="hero-img hero-img--empty" :style="{ background: sourceMeta(news.newsList[0].source_platform || '').bg }">
+            <span class="placeholder-label">{{ sourceMeta(news.newsList[0].source_platform || '').label }}</span>
+          </div>
           <div class="hero-overlay">
             <div class="hero-source-badge" :style="{ '--src-color': sourceMeta(news.newsList[0].source_platform || '').color }">
               {{ sourceMeta(news.newsList[0].source_platform || '').label }}
@@ -128,7 +130,9 @@ function onScroll(e: Event) {
           </div>
           <div class="card-right">
             <img v-if="item.image" :src="item.image" class="card-img" loading="lazy" />
-            <div v-else class="card-img card-img--empty"></div>
+            <div v-else class="card-img card-img--empty" :style="{ background: sourceMeta(item.source_platform || '').bg }">
+              <span class="placeholder-label small">{{ sourceMeta(item.source_platform || '').label }}</span>
+            </div>
           </div>
         </article>
       </template>
@@ -258,7 +262,13 @@ function onScroll(e: Event) {
   width: 88px; height: 64px; border-radius: var(--radius-sm);
   object-fit: cover; display: block; border: 1px solid var(--border);
 }
-.card-img--empty { background: var(--bg-elevated); }
+.card-img--empty { background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; }
+.hero-img--empty { display: flex; align-items: center; justify-content: center; }
+.placeholder-label {
+  font-family: 'JetBrains Mono', monospace; font-weight: 500;
+  font-size: 13px; letter-spacing: 1px; opacity: 0.5; color: var(--text-primary);
+}
+.placeholder-label.small { font-size: 9px; letter-spacing: 0.5px; }
 
 .skeleton-card {
   display: flex; gap: 12px; background: var(--bg-card); border-radius: var(--radius);
