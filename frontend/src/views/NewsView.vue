@@ -53,7 +53,7 @@ function onScroll(e: Event) {
       <div class="logo-wrap">
         <span class="logo-mark">AI</span>
         <div class="logo-text">
-          <span class="logo-zh">掘金头条</span>
+          <span class="logo-zh">Nexus</span>
           <span class="logo-en">DAILY DIGEST</span>
         </div>
       </div>

@@ -35,8 +35,8 @@ async function submit() {
 
     <div class="auth-top">
       <div class="logo-mark">AI</div>
-      <h1 class="brand-name">掘金头条</h1>
-      <p class="brand-sub">JUJIN · DAILY DIGEST</p>
+      <h1 class="brand-name">Nexus</h1>
+      <p class="brand-sub">NEXUS · DAILY DIGEST</p>
     </div>
 
     <div class="auth-card">
