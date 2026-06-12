@@ -7,10 +7,10 @@ const news = useNewsStore()
 const router = useRouter()
 
 const SOURCE_META: Record<string, { label: string; color: string; key: string }> = {
-  'Hacker News':           { label: 'HN',       color: 'var(--hn)',     key: 'hn' },
-  'OpenAI Blog':           { label: 'OpenAI',   color: 'var(--openai)', key: 'openai' },
-  'Google AI Blog':        { label: 'Google AI',color: 'var(--google)', key: 'google' },
-  'MIT Technology Review': { label: 'MIT',      color: 'var(--mit-fg)', key: 'mit' },
+  'hackernews': { label: 'HN',        color: 'var(--hn)',     key: 'hn' },
+  'openai':     { label: 'OpenAI',    color: 'var(--openai)', key: 'openai' },
+  'google_ai':  { label: 'Google AI', color: 'var(--google)', key: 'google' },
+  'mit':        { label: 'MIT',       color: 'var(--mit-fg)', key: 'mit' },
 }
 
 function sourceMeta(source: string) {
@@ -34,10 +34,10 @@ function formatViews(v: number): string {
 
 onMounted(async () => {
   await news.loadCategories()
-  if (news.newsList.length === 0) news.loadNews(news.activeCategoryId, true)
+  if (news.newsList.length === 0) news.loadNews(news.activeSource, true)
 })
 
-watch(() => news.activeCategoryId, (id) => news.loadNews(id, true))
+watch(() => news.activeSource, (src) => news.loadNews(src, true))
 
 function onScroll(e: Event) {
   const el = e.target as HTMLElement
@@ -68,7 +68,7 @@ function onScroll(e: Event) {
         <button
           v-for="cat in news.categories"
           :key="cat.id"
-          :class="['chip', { active: news.activeCategoryId === cat.id }]"
+          :class="['chip', { active: news.activeSource === cat.id }]"
           @click="news.setCategory(cat.id)"
         >{{ cat.name }}</button>
       </div>
@@ -95,8 +95,8 @@ function onScroll(e: Event) {
           <img v-if="news.newsList[0].image" :src="news.newsList[0].image" class="hero-img" loading="lazy" />
           <div v-else class="hero-img hero-img--empty"></div>
           <div class="hero-overlay">
-            <div class="hero-source-badge" :style="{ '--src-color': sourceMeta(news.newsList[0].source || '').color }">
-              {{ sourceMeta(news.newsList[0].source || '').label }}
+            <div class="hero-source-badge" :style="{ '--src-color': sourceMeta(news.newsList[0].source_platform || '').color }">
+              {{ sourceMeta(news.newsList[0].source_platform || '').label }}
             </div>
             <h2 class="hero-title">{{ news.newsList[0].title }}</h2>
             <div class="hero-meta">
@@ -117,8 +117,8 @@ function onScroll(e: Event) {
         >
           <div class="card-index">{{ String(idx + 2).padStart(2, '0') }}</div>
           <div class="card-body">
-            <div class="card-source" :style="{ color: sourceMeta(item.source || '').color }">
-              {{ sourceMeta(item.source || '').label }}
+            <div class="card-source" :style="{ color: sourceMeta(item.source_platform || '').color }">
+              {{ sourceMeta(item.source_platform || '').label }}
             </div>
             <h3 class="card-title">{{ item.title }}</h3>
             <div class="card-meta">

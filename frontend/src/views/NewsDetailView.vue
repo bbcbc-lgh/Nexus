@@ -15,10 +15,10 @@ const favLoading = ref(false)
 const error = ref('')
 
 const SOURCE_META: Record<string, { label: string; color: string }> = {
-  'Hacker News':           { label: 'HN',        color: 'var(--hn)' },
-  'OpenAI Blog':           { label: 'OpenAI',    color: 'var(--openai)' },
-  'Google AI Blog':        { label: 'Google AI', color: 'var(--google)' },
-  'MIT Technology Review': { label: 'MIT',       color: 'var(--mit-fg)' },
+  'hackernews': { label: 'HN',        color: 'var(--hn)' },
+  'openai':     { label: 'OpenAI',    color: 'var(--openai)' },
+  'google_ai':  { label: 'Google AI', color: 'var(--google)' },
+  'mit':        { label: 'MIT',       color: 'var(--mit-fg)' },
 }
 function sourceMeta(s: string) {
   return SOURCE_META[s] || { label: s, color: 'var(--brand)' }

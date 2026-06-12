@@ -8,24 +8,32 @@ from utils.response import success_response
 
 router = APIRouter(prefix="/api/news", tags=["news"])
 
-# 获取新闻分类列表
+# 固定数据源列表，与爬虫 source_platform 字段对应
+SOURCES = [
+    {"id": "all",        "name": "全部"},
+    {"id": "hackernews", "name": "Hacker News"},
+    {"id": "openai",     "name": "OpenAI Blog"},
+    {"id": "google_ai",  "name": "Google AI Blog"},
+    {"id": "mit",        "name": "MIT Tech Review"},
+]
+
+# 获取数据源列表
 @router.get("/categories")
-async def get_category(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
-    category = await news.get_category(skip, limit, db)
-    return success_response(category)
+async def get_category():
+    return success_response(SOURCES)
 
 # 获取新闻列表
 @router.get("/list")
 async def get_list(
-        category_id: int = Query(..., alias = "categoryId"),
+        source: str = Query("all"),
         page: int = 1,
-        page_size: int = Query(10, alias = "pageSize", le=100),
+        page_size: int = Query(10, alias="pageSize", le=100),
         db: AsyncSession = Depends(get_db)
 ):
     offset = (page - 1) * page_size
-    news_list = await news.get_list(db, category_id, offset, page_size)
-    total = await news.get_count_ByCategory(db, category_id)
-    # 判断是否有更多, 如果当前页的数据数量小于总条数,则表示有更多
+    src = None if source == "all" else source
+    news_list = await news.get_list(db, src, offset, page_size)
+    total = await news.get_count_by_source(db, src)
     has_more = (offset + len(news_list)) < total
     return success_response({
             "list": news_list,
@@ -42,15 +50,15 @@ async def get_detail(news_id: int = Query(..., alias="id"), db: AsyncSession = D
     views_res = await news.increase_views(db, news_detail.id)
     if not views_res:
         raise HTTPException(status_code=500, detail="新闻浏览量更新失败")
-    related_news = await news.get_ralated_news(db, news_detail.id, news_detail.category_id)
+    related_news = await news.get_ralated_news(db, news_detail.id, news_detail.source_platform)
     return success_response({
             "id": news_detail.id,
             "title": news_detail.title,
             "content": news_detail.content,
             "image": news_detail.image,
             "author": news_detail.author,
+            "source": news_detail.source_platform,
             "publishTime": news_detail.publish_time,
-            "categoryId": news_detail.category_id,
             "views": news_detail.views,
             "relatedNews": related_news
         })

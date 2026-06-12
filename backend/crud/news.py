@@ -7,16 +7,27 @@ async def get_category(skip: int = 0, limit: int = 100, db: AsyncSession = None)
     result = await db.execute(select(Category).offset(skip).limit(limit))
     return result.scalars().all()
 
-# 指定分类的新闻列表
+# 指定数据源的新闻列表（source=None 表示全部）
 async def get_list(
         db: AsyncSession,
-        category_id: int,
+        source: str | None = None,
         skip: int = 0,
         limit: int = 10,
 ):
-    result = await db.execute(select(News).where(News.category_id == category_id).offset(skip).limit(limit))
+    stmt = select(News)
+    if source:
+        stmt = stmt.where(News.source_platform == source)
+    stmt = stmt.order_by(News.publish_time.desc()).offset(skip).limit(limit)
+    result = await db.execute(stmt)
     return result.scalars().all()
 
+# 指定数据源的新闻总数
+async def get_count_by_source(db: AsyncSession, source: str | None = None) -> int:
+    stmt = select(func.count(News.id))
+    if source:
+        stmt = stmt.where(News.source_platform == source)
+    result = await db.execute(stmt)
+    return result.scalar_one()
 
 # 关键词搜索新闻（标题或摘要模糊匹配），支持跨分类
 async def search_news(
@@ -47,11 +58,6 @@ async def get_search_count(db: AsyncSession, keyword: str) -> int:
     )
     return result.scalar_one()
 
-# 分类的个数
-async def get_count_ByCategory (db: AsyncSession, category_id: int):
-    result = await db.execute(select(func.count(News.id)).where(News.category_id == category_id))
-    return result.scalar_one() # 只能有一个结果,否则报错
-
 # 新闻详情
 async def get_detail (db: AsyncSession, news_id: int):
     result = await db.execute(select(News).where(News.id == news_id))
@@ -65,11 +71,10 @@ async def increase_views (db: AsyncSession, news_id: int):
     # 判断是否更新成功
     return result.rowcount > 0
 
-# 获取新闻的关联新闻
-async def get_ralated_news (db: AsyncSession, news_id: int, category_id: int, limit: int = 5):
-    # order_by代表排序
+# 获取新闻的关联新闻（同数据源）
+async def get_ralated_news(db: AsyncSession, news_id: int, source_platform: str, limit: int = 5):
     stmt = select(News).where(
-        News.category_id == category_id,
+        News.source_platform == source_platform,
         News.id != news_id
     ).order_by(
         News.views.desc(),

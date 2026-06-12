@@ -4,7 +4,7 @@ import { newsApi, type Category, type NewsItem } from '@/api/news'
 
 export const useNewsStore = defineStore('news', () => {
   const categories = ref<Category[]>([])
-  const activeCategoryId = ref(1)
+  const activeSource = ref('all')
   const newsList = ref<NewsItem[]>([])
   const page = ref(1)
   const hasMore = ref(true)
@@ -13,10 +13,10 @@ export const useNewsStore = defineStore('news', () => {
   async function loadCategories() {
     if (categories.value.length) return
     categories.value = await newsApi.getCategories()
-    if (categories.value.length) activeCategoryId.value = categories.value[0].id
+    if (categories.value.length) activeSource.value = categories.value[0].id
   }
 
-  async function loadNews(categoryId: number, reset = false) {
+  async function loadNews(source: string, reset = false) {
     if (loading.value) return
     if (reset) {
       newsList.value = []
@@ -26,7 +26,7 @@ export const useNewsStore = defineStore('news', () => {
     if (!hasMore.value) return
     loading.value = true
     try {
-      const res = await newsApi.getList(categoryId, page.value)
+      const res = await newsApi.getList(source, page.value)
       newsList.value = reset ? res.list : [...newsList.value, ...res.list]
       hasMore.value = res.hasMore
       page.value++
@@ -35,10 +35,10 @@ export const useNewsStore = defineStore('news', () => {
     }
   }
 
-  function setCategory(id: number) {
-    activeCategoryId.value = id
+  function setCategory(id: string) {
+    activeSource.value = id
     loadNews(id, true)
   }
 
-  return { categories, activeCategoryId, newsList, page, hasMore, loading, loadCategories, loadNews, setCategory }
+  return { categories, activeSource, newsList, page, hasMore, loading, loadCategories, loadNews, setCategory }
 })

@@ -1,9 +1,8 @@
 import { apiClient } from './client'
 
 export interface Category {
-  id: number
+  id: string
   name: string
-  sort_order: number
 }
 
 export interface NewsItem {
@@ -12,7 +11,7 @@ export interface NewsItem {
   description: string | null
   image: string | null
   author: string | null
-  category_id: number
+  source_platform: string | null
   views: number
   publish_time: string
 }
@@ -23,8 +22,8 @@ export interface NewsDetail {
   content: string
   image: string | null
   author: string | null
+  source: string | null
   publishTime: string
-  categoryId: number
   views: number
   relatedNews: NewsItem[]
 }
@@ -46,8 +45,8 @@ export const newsApi = {
   getCategories: () =>
     apiClient.get<Category[]>('/api/news/categories'),
 
-  getList: (categoryId: number, page = 1, pageSize = 10) =>
-    apiClient.get<NewsList>(`/api/news/list?categoryId=${categoryId}&page=${page}&pageSize=${pageSize}`),
+  getList: (source: string, page = 1, pageSize = 10) =>
+    apiClient.get<NewsList>(`/api/news/list?source=${source}&page=${page}&pageSize=${pageSize}`),
 
   getDetail: (id: number) =>
     apiClient.get<NewsDetail>(`/api/news/detail?id=${id}`),
