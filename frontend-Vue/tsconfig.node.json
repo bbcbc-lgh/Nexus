@@ -1,0 +1,16 @@
+{
+  "include": [
+    "vite.config.*",
+    "eslint.config.*"
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "types": ["node"],
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo"
+  }
+}
