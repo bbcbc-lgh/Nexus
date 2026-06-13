@@ -70,4 +70,22 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_headers=["*"],
-    allow_methods=
+    allow_methods=["*"],
+    allow_credentials=True,
+)
+
+# 注册统一异常处理器（函数定义在 utils/response.py）
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+
+# 包含路由
+app.include_router(news.router)
+app.include_router(user.router)
+app.include_router(favorite.router)
+app.include_router(history.router)
+
+# 挂载静态文件目录，用于访问用户上传的头像等资源
+# URL 路径：/static/avatars/<filename>
+_static_dir = os.path.join(os.path.dirname(__file__), "static")
+os.makedirs(_static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=_static_dir), name="static")

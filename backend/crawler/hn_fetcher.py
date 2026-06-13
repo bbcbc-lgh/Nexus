@@ -113,4 +113,9 @@ async def fetch_hn(db: AsyncSession) -> int:
             ids = await _get_top_ids(client)
             sem = asyncio.Semaphore(CONCURRENCY)
             tasks = [_process_item(client, db, item_id, sem) for item_id in ids]
-            results = await asyncio.gather(*tasks, return_e
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            count = sum(1 for r in results if r is True)
+    except Exception as e:
+        print(f"[hackernews] 采集失败: {e}")
+    print(f"[hackernews] 新增 {count} 条")
+    return count

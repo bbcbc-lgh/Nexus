@@ -69,3 +69,8 @@ async def _translate_fields(title: str, description: str, content: str):
     results = await asyncio.gather(
         translate_to_zh(title, "title"),
         translate_to_zh(description, "description"),
+        translate_to_zh(content, "content"),
+        return_exceptions=True,
+    )
+    return tuple(r if isinstance(r, str) else "" for r in results)
+
