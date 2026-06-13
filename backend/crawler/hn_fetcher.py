@@ -27,14 +27,15 @@ async def _get_item(client: httpx.AsyncClient, item_id: int) -> dict | None:
         return None
 
 
-async def _fetch_og_image(client: httpx.AsyncClient, url: str) -> str:
-    """抓取原文页面，提取 og:image 或第一张 <img>"""
+async def _fetch_page_content(client: httpx.AsyncClient, url: str) -> tuple[str, str]:
+    """抓取原文页面，返回 (image_url, content_text)"""
     if not url:
-        return ""
+        return "", ""
     try:
         resp = await client.get(url, timeout=8, follow_redirects=True,
                                 headers={"User-Agent": "Mozilla/5.0"})
-        html = resp.text[:50000]  # 只读前 50KB
+        html = resp.text[:200000]
+        image = ""
         # og:image
         m = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
         if not m:
@@ -42,16 +43,36 @@ async def _fetch_og_image(client: httpx.AsyncClient, url: str) -> str:
         if m:
             img = m.group(1).strip()
             if img.startswith("http"):
-                return img
-        # 第一张 <img>
-        m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', html, re.IGNORECASE)
-        if m:
-            img = m.group(1).strip()
-            if img.startswith("http"):
-                return img
+                image = img
+        if not image:
+            m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', html, re.IGNORECASE)
+            if m:
+                img = m.group(1).strip()
+                if img.startswith("http"):
+                    image = img
+
+        # 提取正文：优先 <article>，其次 <main>，再次 <div class="content/post/entry">
+        content = ""
+        for pattern in [
+            r'<article[^>]*>([\s\S]*?)</article>',
+            r'<main[^>]*>([\s\S]*?)</main>',
+            r'<div[^>]+class=["\'][^"\']*(?:post-content|article-body|entry-content|story-body)[^"\']*["\'][^>]*>([\s\S]*?)</div>',
+        ]:
+            m = re.search(pattern, html, re.IGNORECASE)
+            if m:
+                raw = m.group(1)
+                # 去除脚本、样式、导航等无关标签
+                raw = re.sub(r'<(script|style|nav|header|footer|aside|figure)[^>]*>[\s\S]*?</\1>', '', raw, flags=re.IGNORECASE)
+                # 剥离所有 HTML 标签，保留文本
+                text_content = re.sub(r'<[^>]+>', ' ', raw)
+                # 压缩空白
+                text_content = re.sub(r'\s{3,}', '\n\n', text_content).strip()
+                if len(text_content) > 200:
+                    content = text_content[:8000]
+                    break
+        return image, content
     except Exception:
-        pass
-    return ""
+        return "", ""
 
 
 async def fetch_hn(db: AsyncSession) -> int:
@@ -71,12 +92,12 @@ async def fetch_hn(db: AsyncSession) -> int:
                 if not title or not is_ai_related(title):
                     continue
                 pub_time = datetime.fromtimestamp(item["time"]) if item.get("time") else datetime.now()
-                image = await _fetch_og_image(client, url)
+                image, content = await _fetch_page_content(client, url)
                 saved = await save_news(
                     db,
                     title=title,
                     description=f"HN 评论数：{item.get('descendants', 0)}",
-                    content="",
+                    content=content,
                     image=image,
                     author=item.get("by", ""),
                     source_url=url,

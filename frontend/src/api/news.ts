@@ -8,6 +8,7 @@ export interface Category {
 export interface NewsItem {
   id: number
   title: string
+  title_zh: string | null
   description: string | null
   image: string | null
   author: string | null

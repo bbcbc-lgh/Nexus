@@ -122,7 +122,7 @@ function onScroll(e: Event) {
             <div class="hero-source-badge" :style="{ '--src-color': sourceMeta(news.newsList[0].source_platform || '').color }">
               {{ sourceMeta(news.newsList[0].source_platform || '').label }}
             </div>
-            <h2 class="hero-title">{{ news.newsList[0].title }}</h2>
+            <h2 class="hero-title">{{ news.newsList[0].title_zh || news.newsList[0].title }}</h2>
             <div class="hero-meta">
               <span>{{ news.newsList[0].author || '未知' }}</span>
               <span class="dot">·</span>
@@ -144,7 +144,7 @@ function onScroll(e: Event) {
             <div class="card-source" :style="{ color: sourceMeta(item.source_platform || '').color }">
               {{ sourceMeta(item.source_platform || '').label }}
             </div>
-            <h3 class="card-title">{{ item.title }}</h3>
+            <h3 class="card-title">{{ item.title_zh || item.title }}</h3>
             <div class="card-meta">
               <span>{{ item.author || '未知' }}</span>
               <span class="meta-dot">·</span>
@@ -341,16 +341,18 @@ function onScroll(e: Event) {
 .dot { color: var(--border-strong); }
 
 @media (min-width: 768px) {
+  .news-page { height: 100vh; }
   .list-wrap {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
-    padding: 12px 20px 0;
-    align-items: start;
+    padding: 12px 24px 0;
+    max-width: 1100px;
+    margin: 0 auto;
   }
-  .news-card--hero { grid-column: 1 / -1; height: 300px; }
+  .news-card--hero { grid-column: 1 / -1; height: 320px; }
   .skeleton-list, .load-indicator, .no-more { grid-column: 1 / -1; }
   .top-bar { padding: 0 24px; }
-  .source-chips { padding: 8px 20px; }
+  .source-chips { padding: 8px 24px; }
 }
 </style>

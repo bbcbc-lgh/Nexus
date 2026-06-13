@@ -230,10 +230,11 @@ watch(() => route.params.id, loadDetail)
 @keyframes spin { to { transform: rotate(360deg) } }
 
 @media (min-width: 768px) {
-  .content { max-width: 760px; margin: 0 auto; }
-  .cover-img { max-height: 400px; border-radius: 0 0 var(--radius) var(--radius); }
-  .article-body { padding: 32px 32px 8px; }
+  .detail-page { min-height: 100%; }
+  .content { max-width: 800px; margin: 0 auto; }
+  .cover-img { max-height: 420px; }
+  .article-body { padding: 32px 40px 8px; }
   .article-title { font-size: 26px; }
-  .related-section { padding: 0 32px 24px; }
+  .related-section { padding: 0 40px 24px; }
 }
 </style>

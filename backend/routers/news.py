@@ -36,7 +36,20 @@ async def get_list(
     total = await news.get_count_by_source(db, src)
     has_more = (offset + len(news_list)) < total
     return success_response({
-            "list": news_list,
+            "list": [
+                {
+                    "id": n.id,
+                    "title": n.title,
+                    "title_zh": n.title_zh,
+                    "description": n.description,
+                    "image": n.image,
+                    "author": n.author,
+                    "source_platform": n.source_platform,
+                    "views": n.views,
+                    "publish_time": str(n.publish_time),
+                }
+                for n in news_list
+            ],
             "total": total,
             "hasMore": has_more
         }, "新闻列表获取成功")

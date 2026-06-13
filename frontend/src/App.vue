@@ -12,10 +12,7 @@ const showNav = computed(() => auth.isLoggedIn && !route.meta.public)
 
 <template>
   <div id="app">
-    <div class="page-wrap">
-      <RouterView />
-    </div>
-    <nav v-if="showNav" class="bottom-nav">
+    <nav v-if="showNav" class="sidebar">
       <div class="sidebar-logo">AI</div>
       <RouterLink to="/news" class="nav-item" active-class="active">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -31,6 +28,9 @@ const showNav = computed(() => auth.isLoggedIn && !route.meta.public)
         <span class="nav-label">我的</span>
       </RouterLink>
     </nav>
+    <div class="page-wrap">
+      <RouterView />
+    </div>
   </div>
 </template>
 
@@ -56,6 +56,7 @@ const showNav = computed(() => auth.isLoggedIn && !route.meta.public)
   --radius: 10px;
   --radius-sm: 6px;
   --nav-h: 60px;
+  --sidebar-w: 72px;
 
   /* source colors */
   --hn: #E05D00;
@@ -76,7 +77,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* subtle paper grain */
 body::before {
   content: '';
   position: fixed;
@@ -89,25 +89,26 @@ body::before {
   opacity: 0.4;
 }
 
-#app { min-height: 100vh; display: flex; flex-direction: column; }
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
 .page-wrap {
   flex: 1;
-  max-width: 480px;
   width: 100%;
-  margin: 0 auto;
   background: var(--bg);
   min-height: 100vh;
   padding-bottom: calc(var(--nav-h) + 4px);
 }
 
-.bottom-nav {
+/* Mobile bottom nav */
+.sidebar {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 480px;
+  left: 0;
+  right: 0;
   height: var(--nav-h);
   background: rgba(247,244,239,0.96);
   backdrop-filter: blur(20px);
@@ -116,6 +117,8 @@ body::before {
   display: flex;
   z-index: 100;
 }
+
+.sidebar-logo { display: none; }
 
 .nav-item {
   flex: 1;
@@ -149,31 +152,28 @@ a { text-decoration: none; color: inherit; }
 button { cursor: pointer; border: none; outline: none; background: none; font-family: inherit; }
 input, textarea, select { outline: none; font-family: inherit; }
 
-.sidebar-logo { display: none; }
-
+/* Desktop: sidebar layout */
 @media (min-width: 768px) {
-  body { padding-left: 80px; }
-
-  .page-wrap {
-    max-width: 960px;
-    padding-bottom: 0;
+  #app {
+    flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
   }
 
-  .bottom-nav {
-    top: 0;
-    left: 0;
-    bottom: 0;
-    transform: none;
-    width: 80px;
-    max-width: 80px;
+  .sidebar {
+    position: static;
+    width: var(--sidebar-w);
     height: 100vh;
     flex-direction: column;
     border-top: none;
     border-right: 1px solid var(--border);
-    padding: 20px 0;
+    padding: 16px 0 20px;
     justify-content: flex-start;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
+    flex-shrink: 0;
+    background: rgba(247,244,239,0.98);
+    backdrop-filter: blur(20px);
   }
 
   .sidebar-logo {
@@ -188,18 +188,29 @@ input, textarea, select { outline: none; font-family: inherit; }
   .nav-item {
     flex: none;
     width: 100%;
-    height: 56px;
+    height: 52px;
     padding: 0;
     border-radius: 0;
+    gap: 5px;
   }
 
   .nav-item::after { display: none; }
-
   .nav-item.active {
     background: var(--brand-dim);
     color: var(--brand);
   }
+  .nav-label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
 
-  .nav-label { display: none; }
+  .page-wrap {
+    flex: 1;
+    min-width: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding-bottom: 0;
+  }
 }
 </style>
