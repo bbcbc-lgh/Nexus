@@ -284,7 +284,7 @@ watch(sentinel, () => setupObserver())
 </template>
 
 <style scoped>
-.news-page { display: flex; flex-direction: column; min-height: 100%; background: var(--bg); width: 100%; }
+.news-page { display: flex; flex-direction: column; min-height: 100vh; background: var(--bg); width: 100%; }
 
 .top-bar {
   height: 54px; background: var(--bg-card);
