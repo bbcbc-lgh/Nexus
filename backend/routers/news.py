@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, BackgroundTasks
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from config.database_conf import get_db
@@ -99,3 +99,10 @@ async def search(
         "hasMore": has_more,
         "keyword": keyword,
     }, f'"{keyword}" 的搜索结果')
+
+
+@router.post("/refresh")
+async def refresh(background_tasks: BackgroundTasks):
+    from main import _run_fetch
+    background_tasks.add_task(_run_fetch)
+    return success_response(None, "采集任务已启动，请稍后刷新")

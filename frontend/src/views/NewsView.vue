@@ -1,10 +1,29 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, watch, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNewsStore } from '@/stores/newsStore'
+import { newsApi } from '@/api/news'
 
 const news = useNewsStore()
 const router = useRouter()
+const refreshing = ref(false)
+const refreshDone = ref(false)
+
+async function handleRefresh() {
+  if (refreshing.value) return
+  refreshing.value = true
+  refreshDone.value = false
+  try {
+    await newsApi.refresh()
+    refreshDone.value = true
+    setTimeout(() => { refreshDone.value = false }, 3000)
+    setTimeout(() => news.loadNews(news.activeSource, true), 8000)
+  } catch {
+    // 静默失败
+  } finally {
+    refreshing.value = false
+  }
+}
 
 const SOURCE_META: Record<string, { label: string; color: string; key: string; bg: string }> = {
   'hackernews': { label: 'HN',        color: 'var(--hn)',     key: 'hn',     bg: 'rgba(224,93,0,0.08)' },
@@ -58,6 +77,12 @@ function onScroll(e: Event) {
         </div>
       </div>
       <div class="header-right">
+        <button class="refresh-btn" :class="{ spinning: refreshing, done: refreshDone }" @click="handleRefresh" :title="refreshDone ? '采集中，稍后自动更新' : '获取最新资讯'">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <path d="M13 7.5A5.5 5.5 0 1 1 7.5 2a5.5 5.5 0 0 1 3.89 1.61L13 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <span class="live-dot"></span>
         <span class="live-label">LIVE</span>
       </div>
@@ -177,6 +202,15 @@ function onScroll(e: Event) {
   color: var(--text-muted); letter-spacing: 2px; line-height: 1;
 }
 .header-right { display: flex; align-items: center; gap: 6px; }
+.refresh-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  color: var(--text-muted); transition: color 0.2s, background 0.2s;
+}
+.refresh-btn:hover { color: var(--brand); background: var(--brand-dim); }
+.refresh-btn.spinning svg { animation: spin-once 0.8s linear infinite; }
+.refresh-btn.done { color: var(--openai); }
+@keyframes spin-once { to { transform: rotate(360deg); } }
 .live-dot {
   width: 7px; height: 7px; background: #1A8C4E;
   border-radius: 50%; animation: pulse 2s infinite;

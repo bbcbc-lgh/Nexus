@@ -58,5 +58,8 @@ export const newsApi = {
 
   // 按关键词搜索新闻（匹配标题和摘要）
   search: (keyword: string, page = 1, pageSize = 10) =>
-    apiClient.get<SearchResult>(`/api/news/search?keyword=${encodeURIComponent(keyword)}&page=${page}&pageSize=${pageSize}`)
+    apiClient.get<SearchResult>(`/api/news/search?keyword=${encodeURIComponent(keyword)}&page=${page}&pageSize=${pageSize}`),
+
+  refresh: () =>
+    apiClient.post<null>('/api/news/refresh'),
 }
