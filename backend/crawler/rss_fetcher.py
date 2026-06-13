@@ -1,6 +1,7 @@
 """
 RSS 通用采集器，支持 OpenAI Blog、Google AI Blog、MIT Tech Review
 """
+import re
 import feedparser
 import httpx
 from datetime import datetime
@@ -33,7 +34,6 @@ RSS_SOURCES = [
 
 
 def _parse_date(entry) -> datetime:
-    """尝试从 RSS entry 中解析发布时间"""
     for field in ("published", "updated"):
         val = getattr(entry, field, None)
         if val:
@@ -45,15 +45,33 @@ def _parse_date(entry) -> datetime:
 
 
 def _get_image(entry) -> str:
-    """尝试从 RSS entry 中提取封面图"""
+    """从 RSS entry 提取封面图，依次尝试多个来源"""
     # media:thumbnail
     media = getattr(entry, "media_thumbnail", None)
     if media and isinstance(media, list):
-        return media[0].get("url", "")
-    # enclosure
+        url = media[0].get("url", "")
+        if url:
+            return url
+    # enclosure image
     for link in getattr(entry, "links", []):
         if link.get("type", "").startswith("image/"):
-            return link.get("href", "")
+            url = link.get("href", "")
+            if url:
+                return url
+    # 从 content 或 summary HTML 里提取第一张 <img>
+    for field in ("content", "summary"):
+        html = ""
+        val = getattr(entry, field, None)
+        if isinstance(val, list) and val:
+            html = val[0].get("value", "")
+        elif isinstance(val, str):
+            html = val
+        if html:
+            m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', html, re.IGNORECASE)
+            if m:
+                url = m.group(1)
+                if url.startswith("http"):
+                    return url
     return ""
 
 

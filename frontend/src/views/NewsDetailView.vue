@@ -31,6 +31,17 @@ function formatViews(v: number): string {
   return v >= 10000 ? `${(v / 10000).toFixed(1)}万` : String(v)
 }
 
+function renderContent(raw: string): string {
+  if (!raw) return ''
+  // 已是 HTML（含标签）则直接返回，让浏览器渲染原有结构
+  if (/<[a-z][\s\S]*>/i.test(raw)) return raw
+  // 纯文本：按空行分段落，单换行转 <br>
+  return raw.split(/\n{2,}/)
+    .map(p => `<p>${p.trim().replace(/\n/g, '<br>')}</p>`)
+    .filter(p => p !== '<p></p>')
+    .join('')
+}
+
 async function toggleFav() {
   if (!detail.value) return
   favLoading.value = true
@@ -113,7 +124,7 @@ watch(() => route.params.id, loadDetail)
           <span class="divider-line"></span>
         </div>
 
-        <div class="article-text" v-html="(detail.contentZh || detail.descriptionZh || detail.content || detail.description || '').replace(/\n/g, '<br>')"></div>
+        <div class="article-text" v-html="renderContent(detail.contentZh || detail.descriptionZh || detail.content || detail.description || '')"></div>
 
         <a v-if="detail.sourceUrl" :href="detail.sourceUrl" target="_blank" rel="noopener" class="source-link">
           <span>阅读原文</span>
@@ -126,7 +137,7 @@ watch(() => route.params.id, loadDetail)
       <div v-if="detail.relatedNews?.length" class="related-section">
         <div class="related-header"><span class="related-eyebrow">RELATED</span></div>
         <div v-for="r in detail.relatedNews" :key="r.id" class="related-item"
-          @click="router.push(`/news/detail/${r.id}`)">
+          @click="router.replace(`/news/detail/${r.id}`)">
           <span class="related-num">{{ String(detail.relatedNews.indexOf(r) + 1).padStart(2,'0') }}</span>
           <span class="related-text">{{ r.title }}</span>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -160,8 +171,8 @@ watch(() => route.params.id, loadDetail)
 .err-state p { font-size: 15px; color: var(--text-secondary); }
 .retry-btn { padding: 9px 24px; border: 1px solid var(--brand); border-radius: 20px; font-size: 14px; color: var(--brand); font-weight: 600; }
 
-.cover-wrap { width: 100%; position: relative; }
-.cover-img { width: 100%; max-height: 260px; object-fit: cover; display: block; }
+.cover-wrap { width: 100%; position: relative; overflow: hidden; }
+.cover-img { width: 100%; max-height: 260px; object-fit: cover; object-position: center; display: block; }
 .cover-fade { position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: linear-gradient(to bottom, transparent, var(--bg)); }
 
 .article-body { padding: 20px 18px 8px; }
@@ -184,7 +195,16 @@ watch(() => route.params.id, loadDetail)
 .divider-line { flex: 1; height: 1px; background: var(--border); }
 .divider-diamond { width: 6px; height: 6px; background: var(--brand); transform: rotate(45deg); flex-shrink: 0; }
 
-.article-text { font-size: 15px; line-height: 1.95; color: var(--text-primary); letter-spacing: 0.3px; }
+.article-text {
+  font-size: 15px; line-height: 1.8; color: var(--text-primary); letter-spacing: 0.3px;
+}
+.article-text :deep(p) { margin: 0 0 1em; }
+.article-text :deep(p:last-child) { margin-bottom: 0; }
+.article-text :deep(h2), .article-text :deep(h3) { font-family: 'Noto Serif SC', serif; font-size: 16px; font-weight: 700; margin: 1.4em 0 0.6em; color: var(--text-primary); }
+.article-text :deep(ul), .article-text :deep(ol) { padding-left: 1.4em; margin: 0.6em 0 1em; }
+.article-text :deep(li) { margin-bottom: 0.4em; }
+.article-text :deep(a) { color: var(--brand); border-bottom: 1px solid rgba(200,134,10,0.3); }
+.article-text :deep(img) { max-width: 100%; border-radius: var(--radius-sm); margin: 0.8em 0; display: block; }
 
 .source-link {
   display: inline-flex; align-items: center; gap: 5px; margin-top: 20px;
@@ -210,9 +230,10 @@ watch(() => route.params.id, loadDetail)
 @keyframes spin { to { transform: rotate(360deg) } }
 
 @media (min-width: 768px) {
-  .article-body { max-width: 700px; margin: 0 auto; padding: 32px 24px 8px; }
-  .cover-img { max-height: 420px; }
+  .content { max-width: 760px; margin: 0 auto; }
+  .cover-img { max-height: 400px; border-radius: 0 0 var(--radius) var(--radius); }
+  .article-body { padding: 32px 32px 8px; }
   .article-title { font-size: 26px; }
-  .related-section { max-width: 700px; margin: 8px auto 0; padding: 0 0 16px; }
+  .related-section { padding: 0 32px 24px; }
 }
 </style>
