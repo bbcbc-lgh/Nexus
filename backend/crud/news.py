@@ -2,6 +2,8 @@ from sqlalchemy import func, select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.news import Category, News
 
+ALL_SOURCE_PLATFORMS = ("hackernews", "openai", "google_ai", "mit")
+
 # 分类列表
 async def get_category(skip: int = 0, limit: int = 100, db: AsyncSession = None):
     result = await db.execute(select(Category).offset(skip).limit(limit))
@@ -14,6 +16,31 @@ async def get_list(
         skip: int = 0,
         limit: int = 10,
 ):
+    if source is None:
+        bucket_limit = skip + limit
+        buckets = {}
+        for platform in ALL_SOURCE_PLATFORMS:
+            result = await db.execute(
+                select(News)
+                .where(News.source_platform == platform)
+                .order_by(News.publish_time.desc())
+                .limit(bucket_limit)
+            )
+            buckets[platform] = result.scalars().all()
+
+        platforms = sorted(
+            (platform for platform in ALL_SOURCE_PLATFORMS if buckets[platform]),
+            key=lambda platform: buckets[platform][0].publish_time,
+            reverse=True,
+        )
+        mixed_news = []
+        for index in range(bucket_limit):
+            for platform in platforms:
+                if index < len(buckets[platform]):
+                    mixed_news.append(buckets[platform][index])
+
+        return mixed_news[skip:skip + limit]
+
     stmt = select(News)
     if source:
         stmt = stmt.where(News.source_platform == source)
