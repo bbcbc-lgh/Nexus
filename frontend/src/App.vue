@@ -13,7 +13,7 @@ const showNav = computed(() => auth.isLoggedIn && !route.meta.public)
 <template>
   <div class="app-shell">
     <nav v-if="showNav" class="sidebar">
-      <div class="sidebar-logo">AI</div>
+      <div class="sidebar-logo">Nexus</div>
       <RouterLink to="/news" class="nav-item" active-class="active">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
@@ -179,9 +179,9 @@ input, textarea, select { outline: none; font-family: inherit; }
 
   .sidebar-logo {
     display: flex;
-    width: 36px; height: 36px;
+    width: 56px; height: 34px;
     background: var(--brand); color: #fff;
-    font-family: 'Libre Baskerville', serif; font-size: 12px; font-weight: 700;
+    font-family: 'Libre Baskerville', serif; font-size: 11px; font-weight: 700;
     align-items: center; justify-content: center;
     border-radius: 7px; margin-bottom: 16px; flex-shrink: 0;
   }

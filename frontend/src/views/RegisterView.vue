@@ -33,7 +33,7 @@ async function submit() {
   <div class="auth-page">
     <div class="auth-bg"></div>
     <div class="auth-top">
-      <div class="logo-mark">AI</div>
+      <div class="logo-mark">Nexus</div>
       <h1 class="brand-name">Nexus</h1>
       <p class="brand-sub">NEXUS · DAILY DIGEST</p>
     </div>
@@ -95,9 +95,9 @@ async function submit() {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
 .logo-mark {
-  width: 52px; height: 52px; background: var(--brand); color: #fff;
+  width: 82px; height: 52px; background: var(--brand); color: #fff;
   font-family: 'Libre Baskerville', 'Noto Serif SC', serif;
-  font-size: 18px; font-weight: 700;
+  font-size: 16px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   border-radius: 12px; margin-bottom: 4px;
   box-shadow: 0 4px 16px rgba(200,134,10,0.25);

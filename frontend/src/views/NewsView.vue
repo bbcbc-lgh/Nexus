@@ -146,7 +146,7 @@ watch(sentinel, () => setupObserver())
   <div class="news-page">
     <header class="top-bar">
       <div class="logo-wrap">
-        <span class="logo-mark">AI</span>
+        <span class="logo-mark">Nexus</span>
         <div class="logo-text">
           <span class="logo-zh">Nexus</span>
           <span class="logo-en">DAILY DIGEST</span>
@@ -289,8 +289,8 @@ watch(sentinel, () => setupObserver())
 }
 .logo-wrap { display: flex; align-items: center; gap: 10px; }
 .logo-mark {
-  width: 32px; height: 32px; background: var(--brand); color: #fff;
-  font-family: 'Libre Baskerville', serif; font-size: 12px; font-weight: 700;
+  width: 54px; height: 32px; background: var(--brand); color: #fff;
+  font-family: 'Libre Baskerville', serif; font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   border-radius: 7px; flex-shrink: 0;
 }

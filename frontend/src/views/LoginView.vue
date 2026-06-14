@@ -30,7 +30,7 @@ async function submit() {
   <div class="auth-page">
     <div class="auth-bg"></div>
     <div class="auth-top">
-      <div class="logo-mark">AI</div>
+      <div class="logo-mark">Nexus</div>
       <h1 class="brand-name">Nexus</h1>
       <p class="brand-sub">NEXUS · DAILY DIGEST</p>
     </div>
@@ -100,11 +100,11 @@ async function submit() {
   gap: 6px;
 }
 .logo-mark {
-  width: 52px; height: 52px;
+  width: 82px; height: 52px;
   background: var(--brand);
   color: #fff;
   font-family: 'Libre Baskerville', 'Noto Serif SC', serif;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   display: flex;
   align-items: center;
