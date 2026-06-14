@@ -591,7 +591,13 @@ watch(sentinel, () => setupObserver())
     padding: 16px 28px 28px;
   }
 
-  .news-card--hero { height: 360px; }
+  .news-card--hero { grid-column: auto; height: 110px; }
+  .news-card--hero .hero-overlay { padding: 16px 14px; }
+  .news-card--hero .hero-title {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .news-card--hero .hero-source-badge { margin-bottom: 6px; }
   .news-card { height: 110px; padding: 16px 14px; }
   .card-img { width: 108px; height: 76px; }
   .card-title { font-size: 15px; }
