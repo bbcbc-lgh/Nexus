@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { newsApi, type Category, type NewsItem } from '@/api/news'
 
-const NEWS_PAGE_SIZE = 100
+const NEWS_PAGE_SIZE = 30
 
 export const useNewsStore = defineStore('news', () => {
   const categories = ref<Category[]>([])
@@ -30,21 +30,11 @@ export const useNewsStore = defineStore('news', () => {
     if (!hasMore.value) return
     loading.value = true
     try {
-      const appendPage = (res: Awaited<ReturnType<typeof newsApi.getList>>) => {
-        if (currentLoadId !== loadId) return false
-        newsList.value = [...newsList.value, ...res.list]
-        hasMore.value = res.hasMore
-        page.value++
-        return true
-      }
-
-      const firstPage = await newsApi.getList(source, page.value, NEWS_PAGE_SIZE)
-      if (!appendPage(firstPage)) return
-
-      while (reset && hasMore.value && newsList.value.length < firstPage.total) {
-        const res = await newsApi.getList(source, page.value, NEWS_PAGE_SIZE)
-        if (!appendPage(res) || res.list.length === 0) break
-      }
+      const res = await newsApi.getList(source, page.value, NEWS_PAGE_SIZE)
+      if (currentLoadId !== loadId) return
+      newsList.value = [...newsList.value, ...res.list]
+      hasMore.value = res.hasMore
+      page.value++
     } finally {
       if (currentLoadId === loadId) loading.value = false
     }

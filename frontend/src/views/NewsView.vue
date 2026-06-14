@@ -123,8 +123,6 @@ function setupObserver() {
     if (!entries[0].isIntersecting) return
     if (searchActive.value) {
       if (!searchLoading.value && searchHasMore.value) doSearch()
-    } else {
-      if (!news.loading && news.hasMore) news.loadNews(news.activeSource)
     }
   }, { rootMargin: '200px' })
   if (sentinel.value) observer.observe(sentinel.value)
@@ -260,6 +258,9 @@ watch(sentinel, () => setupObserver())
 
       <div v-if="(searchActive ? searchLoading : news.loading) && displayList.length" class="load-indicator">
         <span class="load-dot" v-for="i in 3" :key="i"></span>
+      </div>
+      <div v-if="!searchActive && news.hasMore && news.newsList.length && !news.loading" class="load-more-wrap">
+        <button class="load-more-btn" @click="news.loadNews(news.activeSource)">加载更多</button>
       </div>
       <div v-if="!searchActive && !news.hasMore && news.newsList.length" class="no-more">
         <span class="no-more-line"></span>
@@ -474,6 +475,18 @@ watch(sentinel, () => setupObserver())
 .load-dot:nth-child(3) { animation-delay: 0.3s; }
 @keyframes bounce { 0%,100%{transform:scaleY(0.4);opacity:0.3} 50%{transform:scaleY(1.2);opacity:1} }
 
+.load-more-wrap { display: flex; justify-content: center; padding: 18px 0 10px; }
+.load-more-btn {
+  min-width: 132px; height: 36px; padding: 0 18px;
+  border-radius: 18px; border: 1px solid var(--brand);
+  background: var(--brand); color: #fff;
+  font-family: 'JetBrains Mono', 'Noto Sans SC', sans-serif;
+  font-size: 11px; font-weight: 500; letter-spacing: 1px;
+  transition: background 0.18s, color 0.18s, transform 0.18s;
+}
+.load-more-btn:hover { background: #A66F08; }
+.load-more-btn:active { transform: translateY(1px); }
+
 .no-more { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 20px 0 8px; }
 .no-more-text { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); letter-spacing: 3px; }
 .no-more-line { flex: 1; height: 1px; background: var(--border); max-width: 50px; }
@@ -485,7 +498,7 @@ watch(sentinel, () => setupObserver())
     gap: 8px;
     padding: 12px 24px 24px;
   }
-  .skeleton-list, .load-indicator, .no-more { grid-column: 1 / -1; }
+  .skeleton-list, .load-indicator, .load-more-wrap, .no-more { grid-column: 1 / -1; }
   .top-bar { padding: 0 24px; }
   .source-chips { padding: 8px 24px; }
 }
