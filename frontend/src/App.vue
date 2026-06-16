@@ -33,6 +33,14 @@ onMounted(() => applyTheme(theme.value))
         </svg>
         <span class="nav-label">头条</span>
       </RouterLink>
+      <RouterLink to="/queue" class="nav-item" active-class="active">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 4h9l4 4v10a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z"/>
+          <path d="M14 4v4h4"/>
+          <path d="M8 13h6M8 16h4"/>
+        </svg>
+        <span class="nav-label">队列</span>
+      </RouterLink>
       <RouterLink to="/profile" class="nav-item" active-class="active">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>

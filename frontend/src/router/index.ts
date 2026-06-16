@@ -8,6 +8,7 @@ const router = createRouter({
     { path: '/',           redirect: '/news' },
     { path: '/news',       name: 'news',       component: () => import('@/views/NewsView.vue') },
     { path: '/news/detail/:id', name: 'newsDetail', component: () => import('@/views/NewsDetailView.vue') },
+    { path: '/queue',      name: 'queue',      component: () => import('@/views/QueueView.vue') },
     { path: '/profile',    name: 'profile',    component: () => import('@/views/ProfileView.vue') }
   ]
 })

@@ -295,6 +295,8 @@ ALTER TABLE favorite ADD FOREIGN KEY (folder_id) REFERENCES favorite_folder(id) 
 
 ### 11. 稍后阅读队列 ⭐️⭐️⭐️
 
+> ✅ 已完成 2026-06-16（后端 reading_queue 表 + CRUD；详情页顶部栏新增"稍后阅读"按钮；新增 QueueView 页面 + sidebar 队列导航；支持移出/清空）
+
 **痛点**："想看但没时间"的文章无处存放
 
 **技术实现**：

@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { newsApi, type NewsDetail } from '@/api/news'
 import { favoriteApi } from '@/api/favorite'
+import { queueApi } from '@/api/queue'
 import { historyApi } from '@/api/history'
 
 const route = useRoute()
@@ -10,8 +11,10 @@ const router = useRouter()
 
 const detail = ref<NewsDetail | null>(null)
 const isFav = ref(false)
+const isInQueue = ref(false)
 const loading = ref(true)
 const favLoading = ref(false)
+const queueLoading = ref(false)
 const error = ref('')
 const shareStatus = ref<'idle' | 'copied'>('idle')
 const readProgress = ref(0)
@@ -121,6 +124,20 @@ async function toggleFav() {
   } finally { favLoading.value = false }
 }
 
+async function toggleQueue() {
+  if (!detail.value || queueLoading.value) return
+  queueLoading.value = true
+  try {
+    if (isInQueue.value) {
+      await queueApi.remove(detail.value.id)
+      isInQueue.value = false
+    } else {
+      await queueApi.add(detail.value.id)
+      isInQueue.value = true
+    }
+  } finally { queueLoading.value = false }
+}
+
 async function shareArticle() {
   if (!detail.value) return
   const url = `${window.location.origin}/news/detail/${detail.value.id}`
@@ -187,11 +204,17 @@ async function loadDetail() {
   error.value = ''
   detail.value = null
   isFav.value = false
+  isInQueue.value = false
   try {
-    const [d, fav] = await Promise.allSettled([newsApi.getDetail(id), favoriteApi.check(id)])
+    const [d, fav, queue] = await Promise.allSettled([
+      newsApi.getDetail(id),
+      favoriteApi.check(id),
+      queueApi.check(id),
+    ])
     if (d.status === 'fulfilled') { detail.value = d.value; historyApi.add(id).catch(() => {}) }
     else { error.value = '加载失败' }
     if (fav.status === 'fulfilled') isFav.value = fav.value.isFavorite
+    if (queue.status === 'fulfilled') isInQueue.value = queue.value.inQueue
   } finally { loading.value = false }
 }
 
@@ -222,6 +245,15 @@ onUnmounted(() => {
         </svg>
       </button>
       <span class="top-label">ARTICLE</span>
+      <button class="queue-btn" :class="{ active: isInQueue }" :disabled="queueLoading"
+        :title="isInQueue ? '已加入稍后阅读' : '稍后阅读'" @click="toggleQueue">
+        <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+          <path d="M5 4h9l4 4v10a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z"
+            :stroke="isInQueue ? 'var(--brand)' : 'currentColor'" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M14 4v4h4" :stroke="isInQueue ? 'var(--brand)' : 'currentColor'" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M8 13h6M8 16h4" :stroke="isInQueue ? 'var(--brand)' : 'currentColor'" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
       <button class="share-btn" :class="{ copied: shareStatus === 'copied' }"
         :title="shareStatus === 'copied' ? '已复制链接' : '分享'" @click="shareArticle">
         <svg v-if="shareStatus === 'copied'" width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -366,6 +398,13 @@ onUnmounted(() => {
 }
 .fav-btn { padding: 6px; display: flex; align-items: center; transition: transform 0.2s; }
 .fav-btn:active { transform: scale(0.85); }
+
+.queue-btn {
+  padding: 6px; display: flex; align-items: center; color: var(--text-secondary);
+  margin-right: 2px; transition: transform 0.2s, color 0.2s;
+}
+.queue-btn:active { transform: scale(0.85); }
+.queue-btn.active { color: var(--brand); }
 
 .share-btn {
   padding: 6px; display: flex; align-items: center; color: var(--text-secondary);
