@@ -528,7 +528,8 @@ onUnmounted(() => {
           </div>
           <h1 class="article-title">{{ detail.titleZh || detail.title }}</h1>
           <div class="article-meta">
-            <span class="meta-author">{{ detail.author || '未知来源' }}</span>
+            <RouterLink v-if="detail.author" class="meta-author" :to="`/author/${encodeURIComponent(detail.author)}`">{{ detail.author }}</RouterLink>
+            <span v-else class="meta-author">未知来源</span>
             <span class="meta-sep">·</span>
             <span>{{ formatDate(detail.publishTime) }}</span>
             <span class="meta-sep">·</span>
@@ -731,7 +732,8 @@ onUnmounted(() => {
 }
 .article-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .article-meta span { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
-.meta-author { color: var(--text-secondary) !important; font-weight: 500; }
+.meta-author { color: var(--text-secondary) !important; font-weight: 500; text-decoration: none; }
+.meta-author:hover { color: var(--accent) !important; text-decoration: underline; }
 .meta-sep { color: var(--border-strong) !important; }
 
 .divider { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }

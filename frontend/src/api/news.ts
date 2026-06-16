@@ -86,4 +86,7 @@ export const newsApi = {
 
   recommend: (limit = 20) =>
     apiClient.get<NewsItem[]>(`/api/news/recommend?limit=${limit}`, true),
+
+  getByAuthor: (author: string, page = 1, pageSize = 10) =>
+    apiClient.get<NewsList & { author: string }>(`/api/news/author/${encodeURIComponent(author)}?page=${page}&pageSize=${pageSize}`),
 }

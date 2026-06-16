@@ -8,6 +8,7 @@ const router = createRouter({
     { path: '/',           redirect: '/news' },
     { path: '/news',       name: 'news',       component: () => import('@/views/NewsView.vue'),        meta: { depth: 1 } },
     { path: '/news/detail/:id', name: 'newsDetail', component: () => import('@/views/NewsDetailView.vue'), meta: { depth: 2 } },
+    { path: '/author/:name',   name: 'author',     component: () => import('@/views/AuthorView.vue'),      meta: { depth: 2 } },
     { path: '/queue',      name: 'queue',      component: () => import('@/views/QueueView.vue'),       meta: { depth: 1 } },
     { path: '/stats',      name: 'stats',      component: () => import('@/views/StatsView.vue'),       meta: { depth: 1 } },
     { path: '/profile',    name: 'profile',    component: () => import('@/views/ProfileView.vue'),     meta: { depth: 1 } }

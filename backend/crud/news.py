@@ -148,8 +148,17 @@ async def get_search_count(
     result = await db.execute(stmt)
     return result.scalar_one()
 
-# 新闻详情
-async def get_detail (db: AsyncSession, news_id: int):
+# 按作者查询新闻列表
+async def get_by_author(db: AsyncSession, author: str, skip: int = 0, limit: int = 10):
+    stmt = select(News).where(News.author == author).order_by(News.publish_time.desc()).offset(skip).limit(limit)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+async def get_count_by_author(db: AsyncSession, author: str) -> int:
+    stmt = select(func.count(News.id)).where(News.author == author)
+    result = await db.execute(stmt)
+    return result.scalar_one()
     result = await db.execute(select(News).where(News.id == news_id))
     return result.scalar_one_or_none()
 

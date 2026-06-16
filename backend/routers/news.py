@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from config.database_conf import get_db
 from crud import news
-from crud.news import search_news, get_search_count
+from crud.news import search_news, get_search_count, get_by_author, get_count_by_author
 from utils.response import success_response
 from utils.security import get_current_user
 
@@ -138,6 +138,38 @@ async def refresh(background_tasks: BackgroundTasks):
     from main import _run_fetch
     background_tasks.add_task(_run_fetch)
     return success_response(None, "采集任务已启动，请稍后刷新")
+
+
+@router.get("/author/{author_name}")
+async def get_by_author(
+    author_name: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, alias="pageSize", le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    offset = (page - 1) * page_size
+    items = await get_by_author(db, author_name, offset, page_size)
+    total = await get_count_by_author(db, author_name)
+    has_more = (offset + len(items)) < total
+    return success_response({
+        "list": [
+            {
+                "id": n.id,
+                "title": n.title,
+                "title_zh": n.title_zh,
+                "description": n.description,
+                "image": n.image,
+                "author": n.author,
+                "source_platform": n.source_platform,
+                "views": n.views,
+                "publish_time": str(n.publish_time),
+            }
+            for n in items
+        ],
+        "total": total,
+        "hasMore": has_more,
+        "author": author_name,
+    }, f"{author_name} 的文章")
 
 
 @router.get("/recommend")
