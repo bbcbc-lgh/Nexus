@@ -4,6 +4,8 @@ import { useNewsStore } from '@/stores/newsStore'
 import { newsApi, type NewsItem, type TimeRange } from '@/api/news'
 import { searchHistoryApi, type SearchHistoryItem } from '@/api/searchHistory'
 import { tagApi, type TopicTag } from '@/api/topicTag'
+import { favoriteApi } from '@/api/favorite'
+import { queueApi } from '@/api/queue'
 
 const news = useNewsStore()
 const refreshing = ref(false)
@@ -247,6 +249,62 @@ watch(() => news.activeSource, (src) => {
   if (src !== 'recommend') news.loadNews(src, true)
 })
 watch(sentinel, () => setupObserver())
+
+// 长按菜单
+interface ContextMenu {
+  item: NewsItem
+  x: number
+  y: number
+  isFav: boolean
+  isInQueue: boolean
+}
+const contextMenu = ref<ContextMenu | null>(null)
+let longPressTimer: ReturnType<typeof setTimeout> | null = null
+let longPressItem: NewsItem | null = null
+
+function onCardTouchStart(e: TouchEvent, item: NewsItem) {
+  longPressItem = item
+  const touch = e.changedTouches[0]
+  longPressTimer = setTimeout(async () => {
+    const [favRes, queueRes] = await Promise.allSettled([
+      favoriteApi.check(item.id),
+      queueApi.check(item.id),
+    ])
+    contextMenu.value = {
+      item,
+      x: Math.min(touch.clientX, window.innerWidth - 180),
+      y: Math.min(touch.clientY, window.innerHeight - 120),
+      isFav: favRes.status === 'fulfilled' ? favRes.value.isFavorite : false,
+      isInQueue: queueRes.status === 'fulfilled' ? queueRes.value.inQueue : false,
+    }
+    // 取消默认点击跳转（通过事件标记）
+    e.preventDefault()
+  }, 500)
+}
+
+function onCardTouchEnd() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null }
+}
+
+function closeMenu() {
+  contextMenu.value = null
+}
+
+async function menuFav() {
+  if (!contextMenu.value) return
+  const { item, isFav } = contextMenu.value
+  if (isFav) await favoriteApi.remove(item.id)
+  else await favoriteApi.add(item.id)
+  contextMenu.value = null
+}
+
+async function menuQueue() {
+  if (!contextMenu.value) return
+  const { item, isInQueue } = contextMenu.value
+  if (isInQueue) await queueApi.remove(item.id)
+  else await queueApi.add(item.id)
+  contextMenu.value = null
+}
 </script>
 
 <template>
@@ -405,6 +463,9 @@ watch(sentinel, () => setupObserver())
           :key="item.id"
           class="news-card"
           :to="`/news/detail/${item.id}`"
+          @touchstart.passive="onCardTouchStart($event, item)"
+          @touchend="onCardTouchEnd"
+          @touchmove="onCardTouchEnd"
         >
           <div class="card-index">{{ String(idx + 1).padStart(2, '0') }}</div>
           <div class="card-body">
@@ -448,6 +509,32 @@ watch(sentinel, () => setupObserver())
       </div>
       <div ref="sentinel" class="sentinel"></div>
     </div>
+
+    <!-- 长按上下文菜单 -->
+    <Teleport to="body">
+      <div v-if="contextMenu" class="ctx-overlay" @click="closeMenu">
+        <div class="ctx-menu" :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }" @click.stop>
+          <button class="ctx-item" @click="menuFav">
+            <svg width="15" height="15" viewBox="0 0 22 22" fill="none">
+              <path d="M11 19L3.5 11.5C2 10 2 7.5 3.5 6C5 4.5 7.5 4.5 9 6L11 8L13 6C14.5 4.5 17 4.5 18.5 6C20 7.5 20 10 18.5 11.5L11 19Z"
+                :fill="contextMenu.isFav ? 'var(--brand)' : 'none'"
+                :stroke="contextMenu.isFav ? 'var(--brand)' : 'currentColor'"
+                stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
+            <span>{{ contextMenu.isFav ? '取消收藏' : '收藏' }}</span>
+          </button>
+          <button class="ctx-item" @click="menuQueue">
+            <svg width="15" height="15" viewBox="0 0 22 22" fill="none">
+              <path d="M5 4h9l4 4v10a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z"
+                :stroke="contextMenu.isInQueue ? 'var(--brand)' : 'currentColor'" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M14 4v4h4" :stroke="contextMenu.isInQueue ? 'var(--brand)' : 'currentColor'" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M8 13h6M8 16h4" :stroke="contextMenu.isInQueue ? 'var(--brand)' : 'currentColor'" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <span>{{ contextMenu.isInQueue ? '移出队列' : '稍后阅读' }}</span>
+          </button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -763,4 +850,26 @@ watch(sentinel, () => setupObserver())
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* 长按上下文菜单 */
+.ctx-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+}
+.ctx-menu {
+  position: fixed; min-width: 160px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-md);
+  overflow: hidden; animation: ctx-in 0.12s ease;
+}
+@keyframes ctx-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.ctx-item {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; font-size: 14px; color: var(--text-primary);
+  transition: background 0.12s;
+}
+.ctx-item:hover { background: var(--bg-elevated); }
+.ctx-item + .ctx-item { border-top: 1px solid var(--border); }
 </style>
