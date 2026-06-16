@@ -12,8 +12,10 @@ class Favorite(Base):
     __table_args__ = (
         UniqueConstraint('user_id', 'news_id', name='uq_user_news_favorite'),
         Index('idx_favorite_user', 'user_id'),
+        Index('idx_favorite_folder', 'folder_id'),
     )
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     news_id: Mapped[int] = mapped_column(Integer, ForeignKey("news.id", ondelete="CASCADE"), nullable=False)
+    folder_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("favorite_folder.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

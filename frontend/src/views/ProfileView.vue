@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { favoriteApi, type FavoriteItem } from '@/api/favorite'
 import { historyApi, type HistoryItem } from '@/api/history'
 import { userApi } from '@/api/user'
+import { folderApi, type FolderItem } from '@/api/favoriteFolder'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -24,6 +25,13 @@ const histPage = ref(1)
 const favMore = ref(true)
 const histMore = ref(true)
 const listLoading = ref(false)
+
+// 收藏文件夹
+const folders = ref<FolderItem[]>([])
+const selectedFolder = ref<string>('all')   // 'all' | 'unfiled' | '<id>'
+const moveTarget = ref<{ newsId: number; title: string } | null>(null)
+const folderCreateMode = ref(false)
+const folderCreateName = ref('')
 
 const SOURCE_META: Record<string, { label: string; color: string }> = {
   hackernews: { label: 'HN', color: 'var(--hn)' },
@@ -89,7 +97,7 @@ async function loadFav(reset = false) {
   if (reset) { favList.value = []; favPage.value = 1; favMore.value = true }
   listLoading.value = true
   try {
-    const res = await favoriteApi.getList(favPage.value)
+    const res = await favoriteApi.getList(favPage.value, 10, selectedFolder.value)
     favList.value = reset ? res.list : [...favList.value, ...res.list]
     favMore.value = res.hasMore; favPage.value++
   } finally { listLoading.value = false }
@@ -107,6 +115,65 @@ async function loadHist(reset = false) {
 async function removeFav(newsId: number) {
   await favoriteApi.remove(newsId)
   favList.value = favList.value.filter(f => f.id !== newsId)
+  await loadFolders()
+}
+
+// === 收藏文件夹 ===
+async function loadFolders() {
+  try {
+    const res = await folderApi.list()
+    folders.value = res.list
+  } catch { /* ignore */ }
+}
+
+async function createFolder() {
+  const name = folderCreateName.value.trim()
+  if (!name) return
+  try {
+    await folderApi.create(name)
+    folderCreateName.value = ''
+    folderCreateMode.value = false
+    await loadFolders()
+  } catch (e) {
+    formErr.value = e instanceof Error ? e.message : '创建失败'
+  }
+}
+
+async function renameFolder(f: FolderItem) {
+  const name = prompt('重命名文件夹', f.name)
+  if (!name || name === f.name) return
+  try {
+    await folderApi.rename(f.id, name.trim())
+    await loadFolders()
+  } catch { /* ignore */ }
+}
+
+async function deleteFolder(f: FolderItem) {
+  if (!confirm(`删除文件夹「${f.name}」？文件夹内的收藏会变为"未分类"。`)) return
+  try {
+    await folderApi.remove(f.id)
+    if (selectedFolder.value === String(f.id)) selectedFolder.value = 'all'
+    await loadFolders()
+    loadFav(true)
+  } catch { /* ignore */ }
+}
+
+function selectFolder(key: string) {
+  if (selectedFolder.value === key) return
+  selectedFolder.value = key
+  loadFav(true)
+}
+
+async function moveToFolder(folderId: number | null) {
+  if (!moveTarget.value) return
+  try {
+    await folderApi.move(moveTarget.value.newsId, folderId)
+    moveTarget.value = null
+    await loadFolders()
+    loadFav(true)
+  } catch (e) {
+    formErr.value = e instanceof Error ? e.message : '移动失败'
+  }
 }
 async function clearFav() {
   if (!confirm('确定清空所有收藏？')) return
@@ -129,6 +196,7 @@ function logout() { auth.logout(); router.push('/login') }
 const genderLabel = (g: string) => ({ male: '男', female: '女', unknown: '保密' }[g] || '保密')
 onMounted(async () => {
   if (!auth.userInfo) await auth.fetchInfo().catch(() => {})
+  loadFolders()
   loadFav(true)
 })
 </script>
@@ -176,6 +244,28 @@ onMounted(async () => {
     </div>
 
     <div v-if="tab === 'fav'" class="list-section">
+      <div class="folder-strip">
+        <button :class="['fchip', { active: selectedFolder === 'all' }]" @click="selectFolder('all')">全部</button>
+        <button :class="['fchip', { active: selectedFolder === 'unfiled' }]" @click="selectFolder('unfiled')">未分类</button>
+        <button v-for="f in folders" :key="f.id"
+          :class="['fchip', { active: selectedFolder === String(f.id) }]"
+          @click="selectFolder(String(f.id))"
+          @dblclick.stop="renameFolder(f)">
+          {{ f.name }}<span class="fchip-count">{{ f.count }}</span>
+          <span class="fchip-del" @click.stop="deleteFolder(f)">×</span>
+        </button>
+        <button class="fchip fchip-add" @click="folderCreateMode = !folderCreateMode">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+            <path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div v-if="folderCreateMode" class="folder-create">
+        <input v-model="folderCreateName" placeholder="文件夹名称" @keydown.enter="createFolder" />
+        <button class="fc-confirm" @click="createFolder">添加</button>
+        <button class="fc-cancel" @click="folderCreateMode = false; folderCreateName = ''">取消</button>
+      </div>
+
       <div v-if="favList.length" class="list-toolbar">
         <span class="list-count">{{ favList.length }} items</span>
         <button class="danger-text" @click="clearFav">清空全部</button>
@@ -199,6 +289,11 @@ onMounted(async () => {
             <span>{{ item.author || '未知' }}</span><span class="sep">·</span><span>{{ timeAgo(item.favoriteTime) }}</span>
           </div>
         </div>
+        <button class="move-btn" title="移动到文件夹" @click.stop="moveTarget = { newsId: item.id, title: item.title }">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M2 4h5l1.5 2H14v7H2V4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <button class="del-btn" @click.stop="removeFav(item.id)">
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M3 3L11 11M11 3L3 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </button>
@@ -277,6 +372,29 @@ onMounted(async () => {
           <div class="sheet-actions">
             <button class="sheet-cancel" @click="pwdMode = false">取消</button>
             <button class="sheet-save" :disabled="saving" @click="savePwd">{{ saving ? '保存中…' : '确认修改' }}</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="modal">
+      <div v-if="moveTarget" class="modal-overlay" @mousedown="onOverlayMousedown" @click="onOverlayClick($event, () => moveTarget = null)">
+        <div class="modal-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-eyebrow">MOVE TO FOLDER</div>
+          <h3 class="sheet-title">移动到文件夹</h3>
+          <p class="move-target-title">{{ moveTarget.title }}</p>
+          <div class="move-list">
+            <button class="move-item" @click="moveToFolder(null)">
+              <span>未分类</span>
+            </button>
+            <button v-for="f in folders" :key="f.id" class="move-item" @click="moveToFolder(f.id)">
+              <span>{{ f.name }}</span>
+              <small>{{ f.count }}</small>
+            </button>
+            <button class="move-item move-new" @click="folderCreateMode = true; moveTarget = null">
+              <span>+ 新建文件夹</span>
+            </button>
           </div>
         </div>
       </div>
@@ -369,6 +487,70 @@ onMounted(async () => {
 .sep { color: var(--border-strong); }
 .del-btn { color: var(--text-muted); padding: 4px; flex-shrink: 0; display: flex; align-items: center; transition: color 0.15s; }
 .del-btn:active { color: var(--mit-fg); }
+
+.move-btn {
+  color: var(--text-muted); padding: 4px; flex-shrink: 0;
+  display: flex; align-items: center; transition: color 0.15s;
+}
+.move-btn:active { color: var(--brand); }
+
+.folder-strip {
+  display: flex; gap: 6px; overflow-x: auto;
+  padding: 10px 4px 6px; align-items: center;
+}
+.folder-strip::-webkit-scrollbar { display: none; }
+.fchip {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px; font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text-secondary);
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; transition: all 0.15s; max-width: 200px;
+}
+.fchip:hover { border-color: var(--border-strong); }
+.fchip.active { color: var(--brand); border-color: var(--brand); background: var(--brand-dim); }
+.fchip-count {
+  font-size: 9px; color: var(--text-muted); background: var(--bg-elevated);
+  padding: 1px 5px; border-radius: 8px;
+}
+.fchip.active .fchip-count { color: var(--brand); background: rgba(200,134,10,0.12); }
+.fchip-del {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 12px; height: 12px; border-radius: 50%;
+  font-size: 12px; line-height: 1; color: var(--text-muted);
+}
+.fchip-del:hover { background: var(--bg-hover); color: var(--mit-fg); }
+.fchip-add { color: var(--text-muted); }
+
+.folder-create {
+  display: flex; gap: 6px; padding: 0 4px 8px;
+}
+.folder-create input {
+  flex: 1; padding: 7px 10px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 13px; color: var(--text-primary);
+}
+.folder-create input:focus { border-color: var(--brand); }
+.fc-confirm, .fc-cancel {
+  padding: 7px 12px; font-size: 12px; font-weight: 600; border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.fc-confirm { background: var(--brand); color: #fff; border-color: var(--brand); }
+.fc-cancel { color: var(--text-secondary); }
+
+.move-target-title {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+  margin-top: -6px; margin-bottom: 6px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.move-list { display: flex; flex-direction: column; gap: 4px; max-height: 50vh; overflow-y: auto; }
+.move-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 11px 13px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 14px; color: var(--text-primary);
+  text-align: left; transition: all 0.15s;
+}
+.move-item:hover { border-color: var(--brand); color: var(--brand); }
+.move-item small { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
+.move-new { color: var(--brand); border-style: dashed; justify-content: center; }
 
 .load-more {
   width: 100%; padding: 12px; text-align: center;

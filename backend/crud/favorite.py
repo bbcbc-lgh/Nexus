@@ -27,16 +27,18 @@ async def remove_favorite(db: AsyncSession, user_id: int, news_id: int) -> bool:
     )
     return result.rowcount > 0
 
-# 获取用户的收藏列表，支持分页
-async def get_favorites(db: AsyncSession, user_id: int, skip: int = 0, limit: int = 10):
+# 获取用户的收藏列表，支持分页与按文件夹过滤（folder_id=None 表示未分类，"all" 或省略表示全部）
+async def get_favorites(db: AsyncSession, user_id: int, skip: int = 0, limit: int = 10, folder_filter: str | int | None = "all"):
     stmt = (
-        select(News, Favorite.created_at.label("favorite_time"))
+        select(News, Favorite.created_at.label("favorite_time"), Favorite.folder_id.label("folder_id"))
         .join(Favorite, Favorite.news_id == News.id)
         .where(Favorite.user_id == user_id)
-        .order_by(Favorite.created_at.desc())
-        .offset(skip)
-        .limit(limit)
     )
+    if folder_filter == "unfiled":
+        stmt = stmt.where(Favorite.folder_id.is_(None))
+    elif isinstance(folder_filter, int):
+        stmt = stmt.where(Favorite.folder_id == folder_filter)
+    stmt = stmt.order_by(Favorite.created_at.desc()).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return result.all()             # 返回一个包含新闻对象和收藏时间的列表
 

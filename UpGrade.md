@@ -267,6 +267,8 @@ CREATE TABLE reading_behavior (
 
 ### 10. 收藏文件夹 ⭐️⭐️⭐️
 
+> ✅ 已完成 2026-06-16（后端 favorite_folder 表 + favorite.folder_id 外键 + 文件夹 CRUD/移动接口；前端 ProfileView 收藏 tab 上方文件夹 chips，支持新建/重命名(双击)/删除，每项可移动到文件夹）
+
 **痛点**：无法按主题分组管理收藏
 
 **技术实现**：

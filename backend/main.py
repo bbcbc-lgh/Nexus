@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import asyncio
 import os
-from routers import news, user, favorite, history, search_history, reading_queue
+from routers import news, user, favorite, history, search_history, reading_queue, favorite_folder
 from config.database_conf import async_engine, AsyncSessionLocal
 from config.env import get
 from models.news import Base
@@ -14,6 +14,7 @@ import models.favorite
 import models.history
 import models.search_history
 import models.reading_queue
+import models.favorite_folder
 from utils.response import http_exception_handler, validation_exception_handler
 
 FETCH_INTERVAL = 2 * 60 * 60  # 2小时
@@ -90,6 +91,7 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.include_router(news.router)
 app.include_router(user.router)
 app.include_router(favorite.router)
+app.include_router(favorite_folder.router)
 app.include_router(history.router)
 app.include_router(search_history.router)
 app.include_router(reading_queue.router)

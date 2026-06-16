@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from config.database_conf import get_db
@@ -65,12 +66,24 @@ async def remove_favorite_endpoint(
 async def list_favorites(
     page: int = Query(1, ge=1),
     pageSize: int = Query(10, alias="pageSize", ge=1, le=100),
+    folder: Optional[str] = Query("all", description="all/unfiled/<folder_id>"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # folder 参数 → crud 层的 folder_filter
+    if folder == "all":
+        folder_filter = "all"
+    elif folder == "unfiled":
+        folder_filter = "unfiled"
+    else:
+        try:
+            folder_filter = int(folder)
+        except (ValueError, TypeError):
+            folder_filter = "all"
+
     # 计算分页参数
     skip = (page - 1) * pageSize
-    rows = await get_favorites(db, user_id=current_user.id, skip=skip, limit=pageSize)
+    rows = await get_favorites(db, user_id=current_user.id, skip=skip, limit=pageSize, folder_filter=folder_filter)
     total = await get_favorites_count(db, user_id=current_user.id)
     items = [
         {
@@ -85,8 +98,9 @@ async def list_favorites(
             "categoryId": news.category_id,
             "views": news.views,
             "favoriteTime": fav_time,
+            "folderId": folder_id,
         }
-        for news, fav_time in rows
+        for news, fav_time, folder_id in rows
     ]
 
     return success_response({
