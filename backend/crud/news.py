@@ -2,6 +2,7 @@ from sqlalchemy import func, select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
 from models.news import Category, News
+from sqlalchemy import exists
 
 ALL_SOURCE_PLATFORMS = ("hackernews", "openai", "google_ai", "mit")
 TIME_RANGE_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365}
@@ -66,6 +67,7 @@ async def search_news(
         limit: int = 10,
         sources: list[str] | None = None,
         time_range: str | None = None,
+        tags: list[str] | None = None,
 ):
     stmt = select(News).where(
         or_(
@@ -80,6 +82,14 @@ async def search_news(
         if days:
             cutoff = datetime.now() - timedelta(days=days)
             stmt = stmt.where(News.publish_time >= cutoff)
+    if tags:
+        from models.topic_tag import NewsTopicTag, TopicTag
+        subq = (
+            select(NewsTopicTag.news_id)
+            .join(TopicTag, TopicTag.id == NewsTopicTag.tag_id)
+            .where(TopicTag.slug.in_(tags))
+        )
+        stmt = stmt.where(News.id.in_(subq))
     stmt = stmt.order_by(News.publish_time.desc()).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return result.scalars().all()
@@ -91,6 +101,7 @@ async def get_search_count(
         keyword: str,
         sources: list[str] | None = None,
         time_range: str | None = None,
+        tags: list[str] | None = None,
 ) -> int:
     stmt = select(func.count(News.id)).where(
         or_(
@@ -105,6 +116,14 @@ async def get_search_count(
         if days:
             cutoff = datetime.now() - timedelta(days=days)
             stmt = stmt.where(News.publish_time >= cutoff)
+    if tags:
+        from models.topic_tag import NewsTopicTag, TopicTag
+        subq = (
+            select(NewsTopicTag.news_id)
+            .join(TopicTag, TopicTag.id == NewsTopicTag.tag_id)
+            .where(TopicTag.slug.in_(tags))
+        )
+        stmt = stmt.where(News.id.in_(subq))
     result = await db.execute(stmt)
     return result.scalar_one()
 

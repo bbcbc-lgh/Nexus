@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, watch, ref, computed } from 'vue'
 import { useNewsStore } from '@/stores/newsStore'
 import { newsApi, type NewsItem, type TimeRange } from '@/api/news'
 import { searchHistoryApi, type SearchHistoryItem } from '@/api/searchHistory'
+import { tagApi, type TopicTag } from '@/api/topicTag'
 
 const news = useNewsStore()
 const refreshing = ref(false)
@@ -36,6 +37,8 @@ const TIME_FILTERS: { key: TimeRange; label: string }[] = [
 ]
 const selectedSources = ref<string[]>([])
 const timeRange = ref<TimeRange>('all')
+const selectedTags = ref<string[]>([])
+const allTags = ref<TopicTag[]>([])
 
 function toggleSource(key: string) {
   const i = selectedSources.value.indexOf(key)
@@ -46,6 +49,12 @@ function toggleSource(key: string) {
 function setTimeRange(t: TimeRange) {
   if (timeRange.value === t) return
   timeRange.value = t
+  doSearch(true)
+}
+function toggleTag(slug: string) {
+  const i = selectedTags.value.indexOf(slug)
+  if (i >= 0) selectedTags.value.splice(i, 1)
+  else selectedTags.value.push(slug)
   doSearch(true)
 }
 
@@ -67,7 +76,7 @@ async function doSearch(reset = false) {
   try {
     const res = await newsApi.search(
       q, searchPage.value, 10,
-      selectedSources.value, timeRange.value,
+      selectedSources.value, timeRange.value, selectedTags.value,
     )
     searchResults.value = reset ? res.list : [...searchResults.value, ...res.list]
     searchTotal.value = res.total
@@ -205,6 +214,7 @@ onMounted(async () => {
   if (news.newsList.length === 0) news.loadNews(news.activeSource, true)
   setupObserver()
   loadHistory()
+  tagApi.listAll().then(list => { allTags.value = list }).catch(() => {})
 })
 
 onUnmounted(() => { observer?.disconnect() })
@@ -283,6 +293,15 @@ watch(sentinel, () => setupObserver())
             <button v-for="t in TIME_FILTERS" :key="t.key"
               :class="['fchip', { active: timeRange === t.key }]"
               @click="setTimeRange(t.key)">{{ t.label }}</button>
+          </div>
+        </div>
+        <div v-if="allTags.length" class="filter-row">
+          <span class="filter-label">标签</span>
+          <div class="filter-chips filter-chips--wrap">
+            <button v-for="tag in allTags" :key="tag.slug"
+              :class="['fchip', 'fchip--tag', { active: selectedTags.includes(tag.slug) }]"
+              :style="selectedTags.includes(tag.slug) ? { background: tag.color, borderColor: tag.color, color: '#fff' } : { borderColor: tag.color, color: tag.color }"
+              @click="toggleTag(tag.slug)">{{ tag.name }}</button>
           </div>
         </div>
       </div>

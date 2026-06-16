@@ -90,6 +90,7 @@ async def search(
     page_size: int = Query(10, alias="pageSize", le=100),
     sources: list[str] = Query([], alias="sources"),
     time_range: str = Query("all", alias="timeRange"),
+    tags: list[str] = Query([], alias="tags"),
     db: AsyncSession = Depends(get_db),
 ):
     offset = (page - 1) * page_size
@@ -97,11 +98,13 @@ async def search(
         db, keyword, offset, page_size,
         sources=sources or None,
         time_range=time_range,
+        tags=tags or None,
     )
     total = await get_search_count(
         db, keyword,
         sources=sources or None,
         time_range=time_range,
+        tags=tags or None,
     )
     has_more = (offset + len(results)) < total
     return success_response({

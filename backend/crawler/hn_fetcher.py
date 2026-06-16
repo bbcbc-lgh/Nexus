@@ -7,6 +7,7 @@ import httpx
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from crawler.base import save_news
+from crud.topic_tag import infer_and_tag
 from crawler.filters import is_ai_related
 
 HN_API = "https://hacker-news.firebaseio.com/v0"
@@ -91,7 +92,7 @@ async def _process_item(client: httpx.AsyncClient, db: AsyncSession, item_id: in
             return False
         pub_time = datetime.fromtimestamp(item["time"]) if item.get("time") else datetime.now()
         image, content = await _fetch_page_content(client, url)
-        return await save_news(
+        news_id = await save_news(
             db,
             title=title,
             description="",
@@ -103,6 +104,9 @@ async def _process_item(client: httpx.AsyncClient, db: AsyncSession, item_id: in
             publish_time=pub_time,
             category_id=1,
         )
+        if news_id:
+            await infer_and_tag(db, news_id, title)
+        return news_id
 
 
 async def fetch_hn(db: AsyncSession) -> int:
@@ -114,7 +118,7 @@ async def fetch_hn(db: AsyncSession) -> int:
             sem = asyncio.Semaphore(CONCURRENCY)
             tasks = [_process_item(client, db, item_id, sem) for item_id in ids]
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            count = sum(1 for r in results if r is True)
+            count = sum(1 for r in results if isinstance(r, int))
     except Exception as e:
         print(f"[hackernews] 采集失败: {e}")
     print(f"[hackernews] 新增 {count} 条")

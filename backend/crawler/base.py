@@ -60,7 +60,12 @@ async def save_news(db: AsyncSession, *, title: str, description: str = '',
         "content_zh": content_zh or None,
     })
     await db.commit()
-    return insert_result.rowcount > 0
+    if insert_result.rowcount > 0:
+        # 返回新插入行的 id
+        id_result = await db.execute(text("SELECT id FROM news WHERE content_hash = :h"), {"h": hash_val})
+        row = id_result.fetchone()
+        return row[0] if row else None
+    return None
 
 
 async def _translate_fields(title: str, description: str, content: str):

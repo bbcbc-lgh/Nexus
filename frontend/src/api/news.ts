@@ -65,6 +65,7 @@ export const newsApi = {
     pageSize = 10,
     sources: string[] = [],
     timeRange: TimeRange = 'all',
+    tags: string[] = [],
   ) => {
     const params = new URLSearchParams({
       keyword,
@@ -73,6 +74,7 @@ export const newsApi = {
       timeRange,
     })
     sources.forEach((s) => params.append('sources', s))
+    tags.forEach((t) => params.append('tags', t))
     return apiClient.get<SearchResult>(`/api/news/search?${params.toString()}`)
   },
 

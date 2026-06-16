@@ -8,6 +8,7 @@ from datetime import datetime
 from email.utils import parsedate_to_datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from crawler.base import save_news
+from crud.topic_tag import infer_and_tag
 from crawler.filters import is_ai_related
 
 
@@ -136,6 +137,7 @@ async def fetch_rss_source(db: AsyncSession, source: dict) -> int:
             category_id=source["category_id"],
         )
         if saved:
+            await infer_and_tag(db, saved, f"{title} {description}")
             count += 1
     return count
 
