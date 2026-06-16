@@ -46,6 +46,7 @@ class News(Base):
     views: Mapped[int] = mapped_column(Integer, default=0, nullable=False,comment="浏览量")
     upvotes: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="点赞数")
     downvotes: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="踩数")
+    comment_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="评论数")
     publish_time: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, comment="发布时间")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)

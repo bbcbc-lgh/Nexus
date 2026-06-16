@@ -33,6 +33,7 @@ export interface NewsDetail {
   views: number
   upvotes: number
   downvotes: number
+  commentCount: number
   relatedNews: NewsItem[]
 }
 

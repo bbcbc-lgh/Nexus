@@ -82,6 +82,7 @@ async def get_detail(news_id: int = Query(..., alias="id"), db: AsyncSession = D
             "views": news_detail.views,
             "upvotes": news_detail.upvotes or 0,
             "downvotes": news_detail.downvotes or 0,
+            "commentCount": getattr(news_detail, "comment_count", 0) or 0,
             "relatedNews": related_news
         })
 

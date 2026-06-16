@@ -8,6 +8,8 @@ import { readingApi } from '@/api/readingBehavior'
 import { historyApi } from '@/api/history'
 import { readingProgressApi } from '@/api/readingProgress'
 import { voteApi, type VoteResult } from '@/api/vote'
+import { commentApi, type CommentItem } from '@/api/comment'
+import { useAuthStore } from '@/stores/authStore'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,6 +28,63 @@ const upvotes = ref(0)
 const downvotes = ref(0)
 const userVote = ref<number | null>(null)
 const voteLoading = ref(false)
+const authStore = useAuthStore()
+
+// 评论
+const comments = ref<CommentItem[]>([])
+const commentTotal = ref(0)
+const commentHasMore = ref(false)
+const commentPage = ref(1)
+const commentLoading = ref(false)
+const commentInput = ref('')
+const commentSubmitting = ref(false)
+const replyTo = ref<CommentItem | null>(null)
+
+async function loadComments(reset = false) {
+  if (!detail.value) return
+  if (reset) { commentPage.value = 1; comments.value = [] }
+  commentLoading.value = true
+  try {
+    const res = await commentApi.list(detail.value.id, commentPage.value)
+    if (reset) { comments.value = res.list }
+    else { comments.value.push(...res.list) }
+    commentTotal.value = res.total
+    commentHasMore.value = res.hasMore
+  } finally { commentLoading.value = false }
+}
+
+async function submitComment() {
+  if (!detail.value || !commentInput.value.trim() || commentSubmitting.value) return
+  commentSubmitting.value = true
+  try {
+    const item = await commentApi.create(detail.value.id, commentInput.value.trim(), replyTo.value?.id)
+    comments.value.unshift(item)
+    commentTotal.value++
+    commentInput.value = ''
+    replyTo.value = null
+  } catch { /* 静默 */ } finally { commentSubmitting.value = false }
+}
+
+async function removeComment(commentId: number, newsId: number) {
+  await commentApi.remove(commentId)
+  comments.value = comments.value.filter(c => c.id !== commentId)
+  commentTotal.value = Math.max(0, commentTotal.value - 1)
+}
+
+function loadMoreComments() {
+  commentPage.value++
+  loadComments()
+}
+
+function formatCommentTime(dateStr: string): string {
+  const d = new Date(dateStr)
+  const now = Date.now()
+  const diff = now - d.getTime()
+  if (diff < 60000) return '刚刚'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
+  return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+}
 
 const FONT_OPTS = [
   { key: 'sm', value: 13, btn: 11 },
@@ -322,6 +381,7 @@ async function loadDetail() {
       startBehaviorTracking(id)
       restoreProgress(id)
       startProgressTracking()
+      loadComments(true)
     } else { error.value = '加载失败' }
     if (fav.status === 'fulfilled') isFav.value = fav.value.isFavorite
     if (queue.status === 'fulfilled') isInQueue.value = queue.value.inQueue
@@ -480,6 +540,65 @@ onUnmounted(() => {
           </svg>
         </div>
       </div>
+
+      <!-- 评论区 -->
+      <div class="comment-section">
+        <div class="comment-header">
+          <span class="comment-eyebrow">COMMENTS</span>
+          <span class="comment-count-badge">{{ commentTotal }}</span>
+        </div>
+
+        <!-- 输入框 -->
+        <div v-if="authStore.isLoggedIn" class="comment-input-wrap">
+          <div v-if="replyTo" class="reply-hint">
+            回复 <strong>{{ replyTo.user.nickname }}</strong>
+            <button class="reply-cancel" @click="replyTo = null">×</button>
+          </div>
+          <textarea
+            v-model="commentInput"
+            class="comment-textarea"
+            :placeholder="replyTo ? '写下你的回复…' : '写下你的评论…'"
+            rows="3"
+            maxlength="1000"
+            @keydown.ctrl.enter="submitComment"
+          ></textarea>
+          <div class="comment-input-footer">
+            <span class="comment-char-count">{{ commentInput.length }}/1000</span>
+            <button class="comment-submit-btn" :disabled="!commentInput.trim() || commentSubmitting" @click="submitComment">
+              {{ commentSubmitting ? '发布中…' : '发布' }}
+            </button>
+          </div>
+        </div>
+        <div v-else class="comment-login-hint">
+          <router-link to="/login" class="comment-login-link">登录后参与评论</router-link>
+        </div>
+
+        <!-- 评论列表 -->
+        <div v-if="commentLoading && comments.length === 0" class="comment-loading">
+          <div class="spinner"></div>
+        </div>
+        <div v-else-if="comments.length === 0" class="comment-empty">暂无评论，来说第一句话吧</div>
+        <div v-else class="comment-list">
+          <div v-for="c in comments" :key="c.id" class="comment-item" :class="{ 'comment-reply': c.parentId }">
+            <img :src="c.user.avatar" class="comment-avatar" :alt="c.user.nickname" />
+            <div class="comment-body">
+              <div class="comment-meta">
+                <span class="comment-author">{{ c.user.nickname }}</span>
+                <span class="comment-time">{{ formatCommentTime(c.createdAt) }}</span>
+              </div>
+              <p class="comment-text">{{ c.content }}</p>
+              <div class="comment-actions">
+                <button v-if="authStore.isLoggedIn" class="comment-reply-btn" @click="replyTo = c">回复</button>
+                <button v-if="authStore.userInfo?.id === c.user.id" class="comment-delete-btn"
+                  @click="removeComment(c.id, detail!.id)">删除</button>
+              </div>
+            </div>
+          </div>
+          <button v-if="commentHasMore" class="comment-load-more" :disabled="commentLoading" @click="loadMoreComments">
+            {{ commentLoading ? '加载中…' : '加载更多评论' }}
+          </button>
+        </div>
+      </div>
     </article>
     <div style="height: 32px"></div>
 
@@ -634,6 +753,69 @@ onUnmounted(() => {
 .related-item:active { opacity: 0.6; }
 .related-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); flex-shrink: 0; padding-top: 3px; min-width: 20px; }
 .related-text { flex: 1; font-size: 14px; color: var(--text-primary); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* 评论区 */
+.comment-section { padding: 0 18px 24px; border-top: 1px solid var(--border); }
+.comment-header { display: flex; align-items: center; gap: 10px; padding: 16px 0 12px; }
+.comment-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 3px; color: var(--brand); }
+.comment-count-badge {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
+  background: var(--brand-dim); color: var(--brand); padding: 1px 7px; border-radius: 10px;
+}
+
+.comment-input-wrap { margin-bottom: 18px; }
+.reply-hint {
+  font-size: 12px; color: var(--text-muted); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.reply-hint strong { color: var(--text-secondary); }
+.reply-cancel { font-size: 14px; color: var(--text-muted); padding: 0 4px; line-height: 1; }
+.comment-textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--bg-elevated);
+  color: var(--text-primary); font-size: 14px; font-family: inherit;
+  line-height: 1.6; resize: vertical; transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.comment-textarea:focus { outline: none; border-color: var(--brand); }
+.comment-input-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.comment-char-count { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
+.comment-submit-btn {
+  padding: 7px 20px; background: var(--brand); color: #fff;
+  border-radius: 20px; font-size: 13px; font-weight: 600;
+  transition: opacity 0.15s;
+}
+.comment-submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.comment-login-hint { padding: 12px 0; font-size: 13px; color: var(--text-muted); }
+.comment-login-link { color: var(--brand); border-bottom: 1px solid var(--brand); padding-bottom: 1px; }
+
+.comment-loading { display: flex; justify-content: center; padding: 24px; }
+.comment-empty { font-size: 13px; color: var(--text-muted); padding: 16px 0; text-align: center; }
+
+.comment-list { display: flex; flex-direction: column; gap: 0; }
+.comment-item {
+  display: flex; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.comment-item:last-child { border-bottom: none; }
+.comment-reply { padding-left: 20px; background: rgba(200,134,10,0.03); border-radius: var(--radius-sm); }
+.comment-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.comment-body { flex: 1; min-width: 0; }
+.comment-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.comment-author { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.comment-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
+.comment-text { font-size: 14px; color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.comment-actions { display: flex; gap: 12px; margin-top: 6px; }
+.comment-reply-btn { font-size: 12px; color: var(--text-muted); transition: color 0.15s; }
+.comment-reply-btn:hover { color: var(--brand); }
+.comment-delete-btn { font-size: 12px; color: var(--text-muted); transition: color 0.15s; }
+.comment-delete-btn:hover { color: #C0364D; }
+.comment-load-more {
+  width: 100%; margin-top: 12px; padding: 10px; text-align: center;
+  font-size: 13px; color: var(--brand); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); transition: background 0.15s;
+}
+.comment-load-more:hover { background: var(--brand-dim); }
 
 .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg) } }

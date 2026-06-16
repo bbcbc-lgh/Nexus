@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import asyncio
 import os
-from routers import news, user, favorite, history, search_history, reading_queue, favorite_folder, reading_behavior, topic_tag, reading_progress, vote
+from routers import news, user, favorite, history, search_history, reading_queue, favorite_folder, reading_behavior, topic_tag, reading_progress, vote, comment
 from config.database_conf import async_engine, AsyncSessionLocal
 from config.env import get
 from models.news import Base
@@ -19,6 +19,7 @@ import models.reading_behavior
 import models.topic_tag
 import models.reading_progress
 import models.vote
+import models.comment
 from utils.response import http_exception_handler, validation_exception_handler
 
 FETCH_INTERVAL = 2 * 60 * 60  # 2小时
@@ -103,6 +104,7 @@ app.include_router(reading_behavior.router)
 app.include_router(topic_tag.router)
 app.include_router(reading_progress.router)
 app.include_router(vote.router)
+app.include_router(comment.router)
 
 # 挂载静态文件目录，用于访问用户上传的头像等资源
 # URL 路径：/static/avatars/<filename>
