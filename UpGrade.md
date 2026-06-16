@@ -403,6 +403,8 @@ CREATE TABLE search_history (
 
 ### 15. 高级搜索 ⭐️⭐️
 
+> ✅ 已完成 2026-06-16（后端 search 扩展 sources 多源 + timeRange 时间范围筛选；前端搜索激活时显示筛选面板，源/时间 chip 即时筛选）
+
 **痛点**：无法按时间、多源组合筛选
 
 **技术实现**：

@@ -82,17 +82,27 @@ async def get_detail(news_id: int = Query(..., alias="id"), db: AsyncSession = D
         })
 
 
-# 搜索新闻（按标题或摘要关键词模糊匹配）
+# 搜索新闻（按标题或摘要关键词模糊匹配），支持多源与时间范围筛选
 @router.get("/search")
 async def search(
     keyword: str = Query(..., min_length=1, max_length=50),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, alias="pageSize", le=100),
+    sources: list[str] = Query([], alias="sources"),
+    time_range: str = Query("all", alias="timeRange"),
     db: AsyncSession = Depends(get_db),
 ):
     offset = (page - 1) * page_size
-    results = await search_news(db, keyword, offset, page_size)
-    total = await get_search_count(db, keyword)
+    results = await search_news(
+        db, keyword, offset, page_size,
+        sources=sources or None,
+        time_range=time_range,
+    )
+    total = await get_search_count(
+        db, keyword,
+        sources=sources or None,
+        time_range=time_range,
+    )
     has_more = (offset + len(results)) < total
     return success_response({
         "list": [

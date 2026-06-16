@@ -47,6 +47,8 @@ export interface SearchResult {
   keyword: string
 }
 
+export type TimeRange = 'day' | 'week' | 'month' | 'year' | 'all'
+
 export const newsApi = {
   getCategories: () =>
     apiClient.get<Category[]>('/api/news/categories'),
@@ -57,9 +59,22 @@ export const newsApi = {
   getDetail: (id: number) =>
     apiClient.get<NewsDetail>(`/api/news/detail?id=${id}`),
 
-  // 按关键词搜索新闻（匹配标题和摘要）
-  search: (keyword: string, page = 1, pageSize = 10) =>
-    apiClient.get<SearchResult>(`/api/news/search?keyword=${encodeURIComponent(keyword)}&page=${page}&pageSize=${pageSize}`),
+  search: (
+    keyword: string,
+    page = 1,
+    pageSize = 10,
+    sources: string[] = [],
+    timeRange: TimeRange = 'all',
+  ) => {
+    const params = new URLSearchParams({
+      keyword,
+      page: String(page),
+      pageSize: String(pageSize),
+      timeRange,
+    })
+    sources.forEach((s) => params.append('sources', s))
+    return apiClient.get<SearchResult>(`/api/news/search?${params.toString()}`)
+  },
 
   refresh: () =>
     apiClient.post<null>('/api/news/refresh'),

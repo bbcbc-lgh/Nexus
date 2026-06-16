@@ -1,8 +1,10 @@
 from sqlalchemy import func, select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timedelta
 from models.news import Category, News
 
 ALL_SOURCE_PLATFORMS = ("hackernews", "openai", "google_ai", "mit")
+TIME_RANGE_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365}
 
 # 分类列表
 async def get_category(skip: int = 0, limit: int = 100, db: AsyncSession = None):
@@ -56,33 +58,54 @@ async def get_count_by_source(db: AsyncSession, source: str | None = None) -> in
     result = await db.execute(stmt)
     return result.scalar_one()
 
-# 关键词搜索新闻（标题或摘要模糊匹配），支持跨分类
+# 关键词搜索新闻（标题或摘要模糊匹配），支持跨分类，可选多源与时间范围筛选
 async def search_news(
         db: AsyncSession,
         keyword: str,
         skip: int = 0,
         limit: int = 10,
+        sources: list[str] | None = None,
+        time_range: str | None = None,
 ):
     stmt = select(News).where(
         or_(
             News.title.like(f"%{keyword}%"),
             News.description.like(f"%{keyword}%"),
         )
-    ).order_by(News.publish_time.desc()).offset(skip).limit(limit)
+    )
+    if sources:
+        stmt = stmt.where(News.source_platform.in_(sources))
+    if time_range and time_range != "all":
+        days = TIME_RANGE_DAYS.get(time_range)
+        if days:
+            cutoff = datetime.now() - timedelta(days=days)
+            stmt = stmt.where(News.publish_time >= cutoff)
+    stmt = stmt.order_by(News.publish_time.desc()).offset(skip).limit(limit)
     result = await db.execute(stmt)
     return result.scalars().all()
 
 
 # 关键词搜索结果总数
-async def get_search_count(db: AsyncSession, keyword: str) -> int:
-    result = await db.execute(
-        select(func.count(News.id)).where(
-            or_(
-                News.title.like(f"%{keyword}%"),
-                News.description.like(f"%{keyword}%"),
-            )
+async def get_search_count(
+        db: AsyncSession,
+        keyword: str,
+        sources: list[str] | None = None,
+        time_range: str | None = None,
+) -> int:
+    stmt = select(func.count(News.id)).where(
+        or_(
+            News.title.like(f"%{keyword}%"),
+            News.description.like(f"%{keyword}%"),
         )
     )
+    if sources:
+        stmt = stmt.where(News.source_platform.in_(sources))
+    if time_range and time_range != "all":
+        days = TIME_RANGE_DAYS.get(time_range)
+        if days:
+            cutoff = datetime.now() - timedelta(days=days)
+            stmt = stmt.where(News.publish_time >= cutoff)
+    result = await db.execute(stmt)
     return result.scalar_one()
 
 # 新闻详情

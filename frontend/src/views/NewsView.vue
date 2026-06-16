@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, watch, ref, computed } from 'vue'
 import { useNewsStore } from '@/stores/newsStore'
-import { newsApi, type NewsItem } from '@/api/news'
+import { newsApi, type NewsItem, type TimeRange } from '@/api/news'
 import { searchHistoryApi, type SearchHistoryItem } from '@/api/searchHistory'
 
 const news = useNewsStore()
@@ -20,6 +20,35 @@ const searchHasMore = ref(false)
 const searchTotal = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
+// 高级搜索筛选
+const SOURCE_FILTERS = [
+  { key: 'hackernews', label: 'HN' },
+  { key: 'openai',     label: 'OpenAI' },
+  { key: 'google_ai',  label: 'Google' },
+  { key: 'mit',        label: 'MIT' },
+] as const
+const TIME_FILTERS: { key: TimeRange; label: string }[] = [
+  { key: 'all',   label: '全部' },
+  { key: 'day',   label: '今天' },
+  { key: 'week',  label: '本周' },
+  { key: 'month', label: '本月' },
+  { key: 'year',  label: '今年' },
+]
+const selectedSources = ref<string[]>([])
+const timeRange = ref<TimeRange>('all')
+
+function toggleSource(key: string) {
+  const i = selectedSources.value.indexOf(key)
+  if (i >= 0) selectedSources.value.splice(i, 1)
+  else selectedSources.value.push(key)
+  doSearch(true)
+}
+function setTimeRange(t: TimeRange) {
+  if (timeRange.value === t) return
+  timeRange.value = t
+  doSearch(true)
+}
+
 // 搜索历史
 const historyList = ref<SearchHistoryItem[]>([])
 
@@ -36,7 +65,10 @@ async function doSearch(reset = false) {
   }
   searchLoading.value = true
   try {
-    const res = await newsApi.search(q, searchPage.value)
+    const res = await newsApi.search(
+      q, searchPage.value, 10,
+      selectedSources.value, timeRange.value,
+    )
     searchResults.value = reset ? res.list : [...searchResults.value, ...res.list]
     searchTotal.value = res.total
     searchHasMore.value = res.hasMore
@@ -235,6 +267,24 @@ watch(sentinel, () => setupObserver())
       </div>
       <div v-if="searchActive && searchTotal > 0" class="search-meta">
         <span class="search-count">{{ searchTotal }} 条结果</span>
+      </div>
+      <div v-if="searchActive" class="filter-bar">
+        <div class="filter-row">
+          <span class="filter-label">来源</span>
+          <div class="filter-chips">
+            <button v-for="s in SOURCE_FILTERS" :key="s.key"
+              :class="['fchip', { active: selectedSources.includes(s.key) }]"
+              @click="toggleSource(s.key)">{{ s.label }}</button>
+          </div>
+        </div>
+        <div class="filter-row">
+          <span class="filter-label">时间</span>
+          <div class="filter-chips">
+            <button v-for="t in TIME_FILTERS" :key="t.key"
+              :class="['fchip', { active: timeRange === t.key }]"
+              @click="setTimeRange(t.key)">{{ t.label }}</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -436,6 +486,28 @@ watch(sentinel, () => setupObserver())
 .search-count {
   font-family: 'JetBrains Mono', monospace; font-size: 10px;
   color: var(--brand); letter-spacing: 0.5px;
+}
+
+.filter-bar {
+  padding: 6px 12px 10px; display: flex; flex-direction: column; gap: 6px;
+  border-top: 1px dashed var(--border);
+}
+.filter-row { display: flex; align-items: center; gap: 8px; }
+.filter-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  color: var(--text-muted); letter-spacing: 1.5px; flex-shrink: 0; width: 30px;
+}
+.filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.fchip {
+  padding: 3px 10px; font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500; color: var(--text-secondary);
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 12px; letter-spacing: 0.5px; transition: all 0.15s;
+}
+.fchip:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.fchip.active {
+  color: var(--brand); border-color: var(--brand);
+  background: var(--brand-dim);
 }
 
 .history-bar {
