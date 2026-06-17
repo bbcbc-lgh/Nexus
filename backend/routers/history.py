@@ -9,7 +9,7 @@ from utils.response import success_response
 router = APIRouter(prefix="/api/history", tags=["history"])
 
 # 添加历史记录接口
-@router.post("/add")
+@router.post("/add", summary="记录阅读历史")
 async def add_history_endpoint(
     body: HistoryAdd,
     db: AsyncSession = Depends(get_db),
@@ -25,7 +25,7 @@ async def add_history_endpoint(
         }, "添加成功")
 
 # 获取历史记录列表接口
-@router.get("/list")
+@router.get("/list", summary="获取阅读历史")
 async def get_history_list(
     page: int = Query(default=1, ge=1),
     pageSize: int = Query(default=10, ge=1, le=100),
@@ -61,7 +61,7 @@ async def get_history_list(
         })
 
 # 删除单条历史记录接口
-@router.delete("/delete/{history_id}")
+@router.delete("/delete/{history_id}", summary="删除单条历史")
 async def delete_history_endpoint(
     history_id: int,
     db: AsyncSession = Depends(get_db),
@@ -74,7 +74,7 @@ async def delete_history_endpoint(
     return success_response(message="删除成功")
 
 # 清空历史记录接口
-@router.delete("/clear")
+@router.delete("/clear", summary="清空阅读历史")
 async def clear_history_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),

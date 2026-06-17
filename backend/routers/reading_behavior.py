@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/reading", tags=["reading-behavior"])
 PERIOD_DAYS = {"today": 1, "week": 7, "month": 30, "all": None}
 
 
-@router.post("/behavior")
+@router.post("/behavior", summary="上报阅读行为")
 async def report_behavior_endpoint(
     body: BehaviorReport,
     current_user: User = Depends(get_current_user),
@@ -25,7 +25,7 @@ async def report_behavior_endpoint(
     return success_response(message="已记录")
 
 
-@router.get("/stats")
+@router.get("/stats", summary="获取阅读统计")
 async def get_stats(
     period: str = Query("week", pattern="^(today|week|month|all)$"),
     current_user: User = Depends(get_current_user),

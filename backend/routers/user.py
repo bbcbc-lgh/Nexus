@@ -29,7 +29,7 @@ def _verify(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 # 注册新用户（限流：每 IP 每分钟最多 10 次）
-@router.post("/register")
+@router.post("/register", summary="用户注册")
 async def register(body: UserRegister, db: AsyncSession = Depends(get_db), _=Depends(auth_rate_limit)):
     existing = await get_user_by_username(db, body.username)
     if existing:
@@ -48,7 +48,7 @@ async def register(body: UserRegister, db: AsyncSession = Depends(get_db), _=Dep
         }, "注册成功")
 
 # 用户登录（限流：每 IP 每分钟最多 10 次，防止暴力破解）
-@router.post("/login")
+@router.post("/login", summary="用户登录")
 async def login(body: UserLogin, db: AsyncSession = Depends(get_db), _=Depends(auth_rate_limit)):
     user = await get_user_by_username(db, body.username)
     if not user or not _verify(body.password, user.password_hash):
@@ -66,7 +66,7 @@ async def login(body: UserLogin, db: AsyncSession = Depends(get_db), _=Depends(a
         }, "登录成功")
 
 # 获取当前用户信息
-@router.get("/info")
+@router.get("/info", summary="获取用户信息")
 async def get_info(current_user=Depends(get_current_user)):
     return success_response({
             "id": current_user.id,
@@ -78,7 +78,7 @@ async def get_info(current_user=Depends(get_current_user)):
         }, "获取成功")
 
 # 更新用户信息
-@router.put("/update")
+@router.put("/update", summary="更新用户信息")
 async def update_info(
     body: UserUpdate,
     current_user=Depends(get_current_user),
@@ -96,7 +96,7 @@ async def update_info(
         }, "更新成功")
 
 # 修改用户密码
-@router.put("/password")
+@router.put("/password", summary="修改用户密码")
 async def change_password(
     body: UserPasswordChange,
     current_user=Depends(get_current_user),
@@ -110,7 +110,7 @@ async def change_password(
 
 
 # 用户登出，使当前 token 立即失效
-@router.post("/logout")
+@router.post("/logout", summary="用户登出")
 async def logout(
     authorization: str = Header(..., alias="Authorization"),
     db: AsyncSession = Depends(get_db),
@@ -121,7 +121,7 @@ async def logout(
 
 # 头像上传：接收 base64 编码的图片数据，解码后保存到本地，返回可访问的 URL
 # 前端需将图片转为 data:image/xxx;base64,<data> 格式提交
-@router.post("/avatar")
+@router.post("/avatar", summary="上传用户头像")
 async def upload_avatar(
     body: AvatarUpload,
     current_user=Depends(get_current_user),

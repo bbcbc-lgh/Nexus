@@ -17,7 +17,7 @@ from crud.reading_queue import (
 router = APIRouter(prefix="/api/queue", tags=["reading-queue"])
 
 
-@router.get("/check")
+@router.get("/check", summary="检查稍后阅读状态")
 async def check_queue_status(
     newsId: int = Query(..., alias="newsId"),
     current_user: User = Depends(get_current_user),
@@ -27,7 +27,7 @@ async def check_queue_status(
     return success_response({"inQueue": in_queue})
 
 
-@router.post("/add")
+@router.post("/add", summary="加入稍后阅读")
 async def add_to_queue_endpoint(
     body: QueueAdd,
     current_user: User = Depends(get_current_user),
@@ -45,7 +45,7 @@ async def add_to_queue_endpoint(
     }, "已加入稍后阅读")
 
 
-@router.delete("/remove")
+@router.delete("/remove", summary="移出稍后阅读")
 async def remove_from_queue_endpoint(
     newsId: int = Query(..., alias="newsId"),
     current_user: User = Depends(get_current_user),
@@ -57,7 +57,7 @@ async def remove_from_queue_endpoint(
     return success_response(message="已从队列移除")
 
 
-@router.get("/list")
+@router.get("/list", summary="获取稍后阅读列表")
 async def list_queue(
     page: int = Query(1, ge=1),
     pageSize: int = Query(10, alias="pageSize", ge=1, le=100),
@@ -90,7 +90,7 @@ async def list_queue(
     })
 
 
-@router.delete("/clear")
+@router.delete("/clear", summary="清空稍后阅读")
 async def clear_queue_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

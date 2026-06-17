@@ -20,12 +20,12 @@ SOURCES = [
 ]
 
 # 获取数据源列表
-@router.get("/categories")
+@router.get("/categories", summary="获取新闻分类")
 async def get_category():
     return success_response(SOURCES)
 
 # 获取新闻列表
-@router.get("/list")
+@router.get("/list", summary="获取新闻列表")
 async def get_list(
         source: str = Query("all"),
         page: int = 1,
@@ -57,7 +57,7 @@ async def get_list(
         }, "新闻列表获取成功")
 
 # 获取新闻详情
-@router.get("/detail")
+@router.get("/detail", summary="获取新闻详情")
 async def get_detail(news_id: int = Query(..., alias="id"), db: AsyncSession = Depends(get_db)):
     news_detail = await news.get_detail(db, news_id)
     if not news_detail:
@@ -88,7 +88,7 @@ async def get_detail(news_id: int = Query(..., alias="id"), db: AsyncSession = D
 
 
 # 搜索新闻（按标题或摘要关键词模糊匹配），支持多源与时间范围筛选
-@router.get("/search")
+@router.get("/search", summary="搜索新闻")
 async def search(
     keyword: str = Query(..., min_length=1, max_length=50),
     page: int = Query(1, ge=1),
@@ -133,14 +133,14 @@ async def search(
     }, f'"{keyword}" 的搜索结果')
 
 
-@router.post("/refresh")
+@router.post("/refresh", summary="手动触发采集")
 async def refresh(background_tasks: BackgroundTasks):
     from main import _run_fetch
     background_tasks.add_task(_run_fetch)
     return success_response(None, "采集任务已启动，请稍后刷新")
 
 
-@router.get("/author/{author_name}")
+@router.get("/author/{author_name}", summary="获取作者文章")
 async def get_by_author(
     author_name: str,
     page: int = Query(1, ge=1),
@@ -172,7 +172,7 @@ async def get_by_author(
     }, f"{author_name} 的文章")
 
 
-@router.get("/recommend")
+@router.get("/recommend", summary="获取推荐新闻")
 async def recommend(
     limit: int = Query(20, le=50),
     current_user=Depends(get_current_user),

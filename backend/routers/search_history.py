@@ -17,7 +17,7 @@ from crud.search_history import (
 router = APIRouter(prefix="/api/search/history", tags=["search-history"])
 
 
-@router.post("")
+@router.post("", summary="记录搜索历史")
 async def add_search_endpoint(
     body: SearchHistoryAdd,
     current_user: User = Depends(get_current_user),
@@ -34,7 +34,7 @@ async def add_search_endpoint(
     }, "已记录")
 
 
-@router.get("")
+@router.get("", summary="获取搜索历史")
 async def list_search_history(
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -49,7 +49,7 @@ async def list_search_history(
     })
 
 
-@router.delete("/{history_id}")
+@router.delete("/{history_id}", summary="删除单条搜索历史")
 async def delete_one(
     history_id: int,
     current_user: User = Depends(get_current_user),
@@ -61,7 +61,7 @@ async def delete_one(
     return success_response(message="已删除")
 
 
-@router.delete("")
+@router.delete("", summary="清空搜索历史")
 async def clear_all(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -70,7 +70,7 @@ async def clear_all(
     return success_response(message=f"已清空 {count} 条记录")
 
 
-@router.get("/suggestions")
+@router.get("/suggestions", summary="获取搜索建议")
 async def get_suggestions(
     q: str = Query("", max_length=50),
     current_user: User | None = Depends(get_optional_user),

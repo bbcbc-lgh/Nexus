@@ -17,7 +17,7 @@ from crud.favorite_folder import (
 router = APIRouter(prefix="/api/favorite/folder", tags=["favorite-folder"])
 
 
-@router.get("/list")
+@router.get("/list", summary="获取收藏文件夹列表")
 async def list_folders_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -36,7 +36,7 @@ async def list_folders_endpoint(
     return success_response({"list": items, "unfiledCount": unfiled_count})
 
 
-@router.post("/create")
+@router.post("/create", summary="创建收藏文件夹")
 async def create_folder_endpoint(
     body: FolderCreate,
     current_user: User = Depends(get_current_user),
@@ -50,7 +50,7 @@ async def create_folder_endpoint(
     }, "已创建")
 
 
-@router.put("/{folder_id}/rename")
+@router.put("/{folder_id}/rename", summary="重命名文件夹")
 async def rename_folder_endpoint(
     folder_id: int,
     body: FolderRename,
@@ -63,7 +63,7 @@ async def rename_folder_endpoint(
     return success_response(message="已重命名")
 
 
-@router.delete("/{folder_id}")
+@router.delete("/{folder_id}", summary="删除文件夹")
 async def delete_folder_endpoint(
     folder_id: int,
     current_user: User = Depends(get_current_user),
@@ -75,7 +75,7 @@ async def delete_folder_endpoint(
     return success_response(message="已删除（文件夹内收藏已转为未分类）")
 
 
-@router.post("/move")
+@router.post("/move", summary="移动收藏到文件夹")
 async def move_favorite_endpoint(
     body: FavoriteMove,
     current_user: User = Depends(get_current_user),

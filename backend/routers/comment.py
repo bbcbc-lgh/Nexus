@@ -25,7 +25,7 @@ class CommentIn(BaseModel):
         return v
 
 
-@router.get("")
+@router.get("", summary="获取评论列表")
 async def list_comments(
     news_id: int = Query(...),
     page: int = Query(1, ge=1),
@@ -59,7 +59,7 @@ async def list_comments(
     return success_response({"list": items, "total": total, "hasMore": (offset + len(items)) < total})
 
 
-@router.post("")
+@router.post("", summary="发布评论")
 async def create_comment(
     body: CommentIn,
     current_user=Depends(get_current_user),
@@ -88,7 +88,7 @@ async def create_comment(
     }, "评论成功")
 
 
-@router.delete("/{comment_id}")
+@router.delete("/{comment_id}", summary="删除评论")
 async def delete_comment(
     comment_id: int = Path(...),
     current_user=Depends(get_current_user),

@@ -13,7 +13,7 @@ class VoteIn(BaseModel):
     value: int  # 1 或 -1，0 表示撤销
 
 
-@router.post("/{news_id}/vote")
+@router.post("/{news_id}/vote", summary="投票/撤销投票")
 async def cast_vote(
     news_id: int = Path(...),
     body: VoteIn = ...,
@@ -82,7 +82,7 @@ async def cast_vote(
     }, "投票成功")
 
 
-@router.get("/{news_id}/vote")
+@router.get("/{news_id}/vote", summary="获取投票状态")
 async def get_vote(
     news_id: int = Path(...),
     current_user=Depends(get_current_user),

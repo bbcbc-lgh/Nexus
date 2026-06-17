@@ -15,7 +15,7 @@ class ProgressIn(BaseModel):
     last_position: int = 0
 
 
-@router.post("")
+@router.post("", summary="保存阅读进度")
 async def save_progress(
     body: ProgressIn,
     current_user=Depends(get_current_user),
@@ -30,7 +30,7 @@ async def save_progress(
     return success_response(None, "进度已保存")
 
 
-@router.get("/{news_id}")
+@router.get("/{news_id}", summary="获取阅读进度")
 async def get_progress(
     news_id: int,
     current_user=Depends(get_current_user),

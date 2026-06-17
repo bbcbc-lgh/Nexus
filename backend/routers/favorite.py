@@ -18,7 +18,7 @@ from crud.favorite import (
 router = APIRouter(prefix="/api/favorite", tags=["favorite"])
 
 # 检查用户是否已收藏某条新闻，返回布尔值
-@router.get("/check")
+@router.get("/check", summary="检查收藏状态")
 async def check_favorite_status(
     newsId: int = Query(..., alias="newsId"),
     current_user: User = Depends(get_current_user),
@@ -28,7 +28,7 @@ async def check_favorite_status(
     return success_response({"isFavorite": is_fav})
 
 # 添加收藏记录，并返回新创建的 Favorite 对象
-@router.post("/add")
+@router.post("/add", summary="添加收藏")
 async def add_favorite_endpoint(
     body: FavoriteAdd,
     current_user: User = Depends(get_current_user),
@@ -48,7 +48,7 @@ async def add_favorite_endpoint(
         }, "收藏成功")
 
 # 移除收藏记录，返回是否成功删除
-@router.delete("/remove")
+@router.delete("/remove", summary="取消收藏")
 async def remove_favorite_endpoint(
     newsId: int = Query(..., alias="newsId"),
     current_user: User = Depends(get_current_user),
@@ -62,7 +62,7 @@ async def remove_favorite_endpoint(
     return success_response(message="取消收藏成功")
 
 # 获取用户的收藏列表
-@router.get("/list")
+@router.get("/list", summary="获取收藏列表")
 async def list_favorites(
     page: int = Query(1, ge=1),
     pageSize: int = Query(10, alias="pageSize", ge=1, le=100),
@@ -110,7 +110,7 @@ async def list_favorites(
         })
 
 # 清空用户的所有收藏记录，返回删除的记录数
-@router.delete("/clear")
+@router.delete("/clear", summary="清空收藏")
 async def clear_favorites_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
