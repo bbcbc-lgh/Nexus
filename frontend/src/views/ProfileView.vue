@@ -111,7 +111,7 @@ async function uploadAvatar(e: Event) {
 async function saveEdit() {
   saving.value = true; formErr.value = ''
   try {
-    await auth.updateInfo({ nickname: editForm.value.nickname || undefined, bio: editForm.value.bio || undefined, gender: editForm.value.gender })
+    await auth.updateInfo({ nickname: editForm.value.nickname, bio: editForm.value.bio, gender: editForm.value.gender })
     editMode.value = false
   } catch (e) { formErr.value = e instanceof Error ? e.message : '保存失败' }
   finally { saving.value = false }
