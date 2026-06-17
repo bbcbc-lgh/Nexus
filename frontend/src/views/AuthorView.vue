@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { newsApi, type NewsItem } from '@/api/news'
+import { followApi } from '@/api/follow'
+import { useAuthStore } from '@/stores/authStore'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const author = ref(decodeURIComponent(route.params.name as string))
 const items = ref<NewsItem[]>([])
@@ -13,6 +16,8 @@ const page = ref(1)
 const hasMore = ref(false)
 const loading = ref(false)
 const loadingMore = ref(false)
+const following = ref(false)
+const followLoading = ref(false)
 
 const SOURCE_META: Record<string, { label: string; color: string }> = {
   hackernews: { label: 'HN',        color: '#E05D00' },
@@ -27,6 +32,33 @@ function sourceMeta(s: string | null) {
 
 function formatDate(t: string) {
   return new Date(t).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+const canFollow = computed(() => auth.isLoggedIn && !!author.value)
+
+async function loadFollowState() {
+  if (!canFollow.value) {
+    following.value = false
+    return
+  }
+  try {
+    const res = await followApi.checkAuthor(author.value)
+    following.value = res.following
+  } catch {
+    following.value = false
+  }
+}
+
+async function toggleFollow() {
+  if (!canFollow.value || followLoading.value) return
+  followLoading.value = true
+  try {
+    if (following.value) await followApi.unfollowAuthor(author.value)
+    else await followApi.followAuthor(author.value)
+    following.value = !following.value
+  } finally {
+    followLoading.value = false
+  }
 }
 
 async function load(reset = false) {
@@ -52,16 +84,18 @@ async function loadMore() {
 }
 
 onMounted(() => load(true))
+watch(() => auth.isLoggedIn, () => loadFollowState(), { immediate: true })
 watch(() => route.params.name, (v) => {
   author.value = decodeURIComponent(v as string)
   load(true)
+  loadFollowState()
 })
 </script>
 
 <template>
   <div class="author-page">
     <header class="author-header">
-      <button class="back-btn" @click="router.back()">←</button>
+      <button class="back-btn" aria-label="返回" title="返回" @click="router.back()">←</button>
       <div class="author-info">
         <div class="author-avatar">{{ author.charAt(0).toUpperCase() }}</div>
         <div>
@@ -69,6 +103,12 @@ watch(() => route.params.name, (v) => {
           <div class="author-count">{{ total }} 篇文章</div>
         </div>
       </div>
+      <button v-if="canFollow" class="follow-btn" :class="{ active: following }" :disabled="followLoading"
+        :aria-label="following ? '取消关注作者' : '关注作者'"
+        :title="following ? '取消关注作者' : '关注作者'"
+        @click="toggleFollow">
+        {{ followLoading ? '处理中…' : (following ? '已关注' : '关注作者') }}
+      </button>
     </header>
 
     <div class="article-list">
@@ -131,6 +171,21 @@ watch(() => route.params.name, (v) => {
 }
 .author-name { font-family: 'Libre Baskerville', serif; font-size: 18px; font-weight: 700; color: var(--text-primary); }
 .author-count { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.follow-btn {
+  margin-left: auto;
+  padding: 8px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--brand);
+  background: var(--brand);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.follow-btn.active {
+  background: var(--bg-card);
+  color: var(--brand);
+}
 
 .article-card {
   display: flex; gap: 12px; align-items: flex-start;

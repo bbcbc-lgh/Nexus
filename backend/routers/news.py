@@ -183,11 +183,13 @@ async def recommend(
 
     # 1. 取用户近 30 天 view/favorite 的新闻 id
     rows = await db.execute(text("""
-        SELECT DISTINCT news_id FROM reading_behavior
+        SELECT news_id
+        FROM reading_behavior
         WHERE user_id = :uid
           AND action_type IN ('view', 'favorite')
           AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-        ORDER BY created_at DESC
+        GROUP BY news_id
+        ORDER BY MAX(created_at) DESC
         LIMIT 50
     """), {"uid": user_id})
     read_ids = [r for r, in rows.all()]

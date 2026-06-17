@@ -6,6 +6,7 @@ import { favoriteApi, type FavoriteItem } from '@/api/favorite'
 import { historyApi, type HistoryItem } from '@/api/history'
 import { userApi } from '@/api/user'
 import { folderApi, type FolderItem } from '@/api/favoriteFolder'
+import { followApi, type FollowedAuthor } from '@/api/follow'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -34,6 +35,7 @@ const selectedFolder = ref<string>('all')   // 'all' | 'unfiled' | '<id>'
 const moveTarget = ref<{ newsId: number; title: string } | null>(null)
 const folderCreateMode = ref(false)
 const folderCreateName = ref('')
+const followedAuthors = ref<FollowedAuthor[]>([])
 
 const SOURCE_META: Record<string, { label: string; color: string }> = {
   hackernews: { label: 'HN', color: 'var(--hn)' },
@@ -164,6 +166,13 @@ async function loadFolders() {
   } catch { /* ignore */ }
 }
 
+async function loadFollowedAuthors() {
+  try {
+    const res = await followApi.listAuthors()
+    followedAuthors.value = res.list
+  } catch { /* ignore */ }
+}
+
 async function createFolder() {
   const name = folderCreateName.value.trim()
   if (!name) return
@@ -235,6 +244,7 @@ const genderLabel = (g: string) => ({ male: '男', female: '女', unknown: '保�
 onMounted(async () => {
   if (!auth.userInfo) await auth.fetchInfo().catch(() => {})
   loadFolders()
+  loadFollowedAuthors()
   loadFav(true)
 })
 </script>
@@ -283,6 +293,20 @@ onMounted(async () => {
         <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
+
+    <div v-if="followedAuthors.length" class="follow-section">
+      <div class="follow-head">
+        <span class="follow-title">关注作者</span>
+      </div>
+      <div class="follow-list">
+        <button v-for="item in followedAuthors" :key="item.author" class="follow-chip"
+          :aria-label="`查看作者 ${item.author}`"
+          :title="`查看作者 ${item.author}`"
+          @click="router.push(`/author/${encodeURIComponent(item.author)}`)">
+          {{ item.author }}
+        </button>
+      </div>
+    </div>
 
     <div class="tabs-bar">
       <button :class="['tab-btn', { active: tab === 'fav' }]" @click="switchTab('fav')">
@@ -515,6 +539,27 @@ onMounted(async () => {
 .edit-btn:active { color: var(--brand); border-color: var(--brand); }
 
 .tabs-bar { background: var(--bg-card); display: flex; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.follow-section {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px 14px;
+}
+.follow-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.follow-title {
+  font-family: 'Libre Baskerville', 'Noto Serif SC', serif;
+  font-size: 14px; font-weight: 700; color: var(--text-primary);
+}
+.follow-list { display: flex; gap: 8px; overflow-x: auto; }
+.follow-list::-webkit-scrollbar { display: none; }
+.follow-chip {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
 
 .quick-stats {
   width: 100%; display: flex; align-items: center; gap: 12px;
@@ -722,6 +767,7 @@ onMounted(async () => {
 @media (min-width: 768px) {
   .top-bar { padding: 0 24px; }
   .user-card,
+  .follow-section,
   .tabs-bar,
   .list-section {
     width: min(1180px, calc(100% - 48px));

@@ -198,3 +198,109 @@ async def test_search_suggestions(client):
     data = resp.json()
     assert data["code"] == CODE_OK
     assert isinstance(data["data"], list)
+
+
+# ── 扩展功能 API ─────────────────────────────────────────────────────────────
+
+async def _first_news(auth_client):
+    news_resp = await auth_client.get("/api/news/list?page=1&pageSize=1")
+    news_list = news_resp.json()["data"]["list"]
+    if not news_list:
+        pytest.skip("没有新闻数据，跳过依赖新闻的测试")
+    return news_list[0]
+
+
+async def test_vote_flow(auth_client):
+    news_id = (await _first_news(auth_client))["id"]
+
+    add = await auth_client.post(f"/api/news/{news_id}/vote", json={"value": 1})
+    assert add.status_code == 200
+    assert add.json()["code"] == CODE_OK
+    assert add.json()["data"]["userVote"] == 1
+
+    state = await auth_client.get(f"/api/news/{news_id}/vote")
+    assert state.json()["data"]["userVote"] == 1
+
+    remove = await auth_client.post(f"/api/news/{news_id}/vote", json={"value": 0})
+    assert remove.status_code == 200
+
+
+async def test_comment_flow(auth_client):
+    news_id = (await _first_news(auth_client))["id"]
+
+    created = await auth_client.post("/api/comments", json={"news_id": news_id, "content": "integration comment"})
+    assert created.status_code == 200
+    assert created.json()["code"] == CODE_OK
+    comment_id = created.json()["data"]["id"]
+
+    listing = await auth_client.get("/api/comments", params={"news_id": news_id})
+    ids = [item["id"] for item in listing.json()["data"]["list"]]
+    assert comment_id in ids
+
+    deleted = await auth_client.delete(f"/api/comments/{comment_id}")
+    assert deleted.status_code == 200
+
+
+async def test_reading_progress_flow(auth_client):
+    news_id = (await _first_news(auth_client))["id"]
+
+    saved = await auth_client.post("/api/reading-progress", json={
+        "news_id": news_id,
+        "progress": 42,
+        "last_position": 360,
+    })
+    assert saved.status_code == 200
+
+    progress = await auth_client.get(f"/api/reading-progress/{news_id}")
+    data = progress.json()["data"]
+    assert data["progress"] == 42
+    assert data["lastPosition"] == 360
+
+
+async def test_tags_and_recommend(auth_client):
+    tags = await auth_client.get("/api/tags")
+    assert tags.status_code == 200
+    assert isinstance(tags.json(), list)
+
+    rec = await auth_client.get("/api/news/recommend?limit=3")
+    assert rec.status_code == 200
+    assert rec.json()["code"] == CODE_OK
+    assert isinstance(rec.json()["data"], list)
+
+
+async def test_update_profile_allows_empty_fields(auth_client):
+    resp = await auth_client.put("/api/user/update", json={"nickname": "", "bio": "", "gender": "unknown"})
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["nickname"] == ""
+    assert data["bio"] == ""
+
+
+# ── 关注作者 API ─────────────────────────────────────────────────────────────
+
+async def test_follow_author_flow(auth_client):
+    news_resp = await auth_client.get("/api/news/list?page=1&pageSize=10")
+    news_list = news_resp.json()["data"]["list"]
+    target = next((item for item in news_list if item.get("author")), None)
+    if not target:
+        pytest.skip("没有可关注的作者")
+
+    author = target["author"]
+
+    check = await auth_client.get("/api/follow/author/check", params={"author": author})
+    assert check.json()["code"] == CODE_OK
+
+    add = await auth_client.post("/api/follow/author", json={"author": author})
+    assert add.status_code == 200
+    assert add.json()["code"] == CODE_OK
+
+    lst = await auth_client.get("/api/follow/authors")
+    authors = [h["author"] for h in lst.json()["data"]["list"]]
+    assert author in authors
+
+    remove = await auth_client.delete("/api/follow/author", params={"author": author})
+    assert remove.status_code == 200
+
+    lst2 = await auth_client.get("/api/follow/authors")
+    authors2 = [h["author"] for h in lst2.json()["data"]["list"]]
+    assert author not in authors2
