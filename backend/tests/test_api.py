@@ -276,6 +276,48 @@ async def test_update_profile_allows_empty_fields(auth_client):
     assert data["bio"] == ""
 
 
+async def test_avatar_upload_flow(auth_client):
+    tiny_png = (
+        "data:image/png;base64,"
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgN0X58sAAAAASUVORK5CYII="
+    )
+    resp = await auth_client.post("/api/user/avatar", json={"image": tiny_png})
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["avatar"].endswith(".png")
+    assert "/static/avatars/" in data["avatar"]
+
+
+async def test_favorite_folder_clear_flow(auth_client):
+    news_resp = await auth_client.get("/api/news/list?page=1&pageSize=2")
+    news_list = news_resp.json()["data"]["list"]
+    if len(news_list) < 2:
+        pytest.skip("没有足够新闻数据，跳过文件夹清空测试")
+
+    first_id = news_list[0]["id"]
+    second_id = news_list[1]["id"]
+
+    created = await auth_client.post("/api/favorite/folder/create", json={"name": "integration-folder"})
+    folder_id = created.json()["data"]["id"]
+
+    await auth_client.post("/api/favorite/add", json={"newsId": first_id})
+    await auth_client.post("/api/favorite/add", json={"newsId": second_id})
+    await auth_client.post("/api/favorite/folder/move", json={"newsId": first_id, "folderId": folder_id})
+
+    cleared = await auth_client.post(f"/api/favorite/folder/{folder_id}/clear")
+    assert cleared.status_code == 200
+    assert cleared.json()["data"]["count"] == 1
+
+    folder_list = await auth_client.get(f"/api/favorite/list?folder={folder_id}")
+    assert folder_list.status_code == 200
+    assert folder_list.json()["data"]["list"] == []
+
+    unfiled_list = await auth_client.get("/api/favorite/list?folder=unfiled")
+    unfiled_ids = [item["id"] for item in unfiled_list.json()["data"]["list"]]
+    assert first_id in unfiled_ids
+    assert second_id in unfiled_ids
+
+
 # ── 关注作者 API ─────────────────────────────────────────────────────────────
 
 async def test_follow_author_flow(auth_client):

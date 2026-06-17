@@ -61,3 +61,12 @@ async def move_favorite(db: AsyncSession, user_id: int, news_id: int, folder_id:
         .values(folder_id=folder_id)
     )
     return result.rowcount > 0
+
+
+async def clear_folder_favorites(db: AsyncSession, user_id: int, folder_id: int) -> int:
+    result = await db.execute(
+        update(Favorite)
+        .where(Favorite.user_id == user_id, Favorite.folder_id == folder_id)
+        .values(folder_id=None)
+    )
+    return result.rowcount

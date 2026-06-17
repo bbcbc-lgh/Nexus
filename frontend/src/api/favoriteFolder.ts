@@ -29,4 +29,7 @@ export const folderApi = {
 
   move: (newsId: number, folderId: number | null) =>
     apiClient.post<null>('/api/favorite/folder/move', { newsId, folderId }, true),
+
+  clear: (folderId: number) =>
+    apiClient.post<{ count: number }>(`/api/favorite/folder/${folderId}/clear`, undefined, true),
 }

@@ -205,6 +205,19 @@ async function deleteFolder(f: FolderItem) {
   } catch { /* ignore */ }
 }
 
+async function clearCurrentFolder() {
+  const folderId = Number(selectedFolder.value)
+  const folder = folders.value.find(item => item.id === folderId)
+  if (!folder || !Number.isFinite(folderId)) return
+  if (!confirm(`Clear folder ${folder.name}? Favorites will move back to Unfiled.`)) return
+  try {
+    await folderApi.clear(folderId)
+    await loadFolders()
+    loadFav(true)
+  } catch (e) {
+    formErr.value = e instanceof Error ? e.message : 'Clear failed'
+  }
+}
 function selectFolder(key: string) {
   if (selectedFolder.value === key) return
   selectedFolder.value = key
@@ -253,7 +266,7 @@ onMounted(async () => {
   <div class="profile-page">
     <header class="top-bar">
       <span class="top-title">我的</span>
-      <button class="logout-btn" @click="logout">
+      <button class="logout-btn" aria-label="Logout" title="Logout" @click="logout">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="vertical-align:-2px;margin-right:4px">
           <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>退出
@@ -278,7 +291,7 @@ onMounted(async () => {
       </button>
     </div>
 
-    <button class="quick-stats" @click="router.push('/stats')">
+    <button class="quick-stats" aria-label="Reading stats" title="Reading stats" @click="router.push('/stats')">
       <div class="qs-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 3v18h18"/>
@@ -328,12 +341,14 @@ onMounted(async () => {
         <button :class="['fchip', { active: selectedFolder === 'unfiled' }]" @click="selectFolder('unfiled')">未分类</button>
         <button v-for="f in folders" :key="f.id"
           :class="['fchip', { active: selectedFolder === String(f.id) }]"
+          :aria-label="`Open folder ${f.name}`"
+          :title="`Open folder ${f.name}`"
           @click="selectFolder(String(f.id))"
           @dblclick.stop="renameFolder(f)">
           {{ f.name }}<span class="fchip-count">{{ f.count }}</span>
           <span class="fchip-del" @click.stop="deleteFolder(f)">×</span>
         </button>
-        <button class="fchip fchip-add" @click="folderCreateMode = !folderCreateMode">
+        <button class="fchip fchip-add" aria-label="New folder" title="New folder" @click="folderCreateMode = !folderCreateMode">
           <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
             <path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
@@ -341,13 +356,14 @@ onMounted(async () => {
       </div>
       <div v-if="folderCreateMode" class="folder-create">
         <input v-model="folderCreateName" placeholder="文件夹名称" @keydown.enter="createFolder" />
-        <button class="fc-confirm" @click="createFolder">添加</button>
-        <button class="fc-cancel" @click="folderCreateMode = false; folderCreateName = ''">取消</button>
+        <button class="fc-confirm" aria-label="Add folder" title="Add folder" @click="createFolder">添加</button>
+        <button class="fc-cancel" aria-label="Cancel new folder" title="Cancel new folder" @click="folderCreateMode = false; folderCreateName = ''">取消</button>
       </div>
 
       <div v-if="favList.length" class="list-toolbar">
         <span class="list-count">{{ favList.length }} items</span>
-        <button class="danger-text" @click="clearFav">清空全部</button>
+        <button v-if="selectedFolder !== 'all'" class="danger-text" aria-label="Clear current folder" title="Clear current folder" @click="clearCurrentFolder">Clear current folder</button>
+        <button class="danger-text" aria-label="Clear all favorites" title="Clear all favorites" @click="clearFav">清空全部</button>
       </div>
       <div v-if="listLoading && !favList.length" class="empty-state"><div class="mini-spinner"></div></div>
       <div v-else-if="!favList.length" class="empty-state">
@@ -423,7 +439,7 @@ onMounted(async () => {
             <div class="avatar-editor">
               <img v-if="currentAvatar" class="avatar-preview" :src="currentAvatar" alt="当前头像" />
               <div v-else class="avatar-preview avatar-preview--text">{{ avatarText() }}</div>
-              <button class="avatar-upload-btn" :disabled="avatarUploading" @click="avatarFileInput?.click()">
+              <button class="avatar-upload-btn" :disabled="avatarUploading" aria-label="Upload avatar" title="Upload avatar" @click="avatarFileInput?.click()">
                 {{ avatarUploading ? '处理中…' : '上传头像' }}
               </button>
               <input ref="avatarFileInput" class="avatar-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" @change="uploadAvatar" />
@@ -431,6 +447,7 @@ onMounted(async () => {
             <div class="avatar-presets">
               <button v-for="item in DEFAULT_AVATARS" :key="item.url"
                 :class="['avatar-preset', { active: currentAvatar === item.url }]"
+                :aria-label="`Choose avatar ${item.label}`"
                 :title="item.label"
                 :disabled="avatarUploading"
                 @click="selectDefaultAvatar(item.url)">
@@ -445,6 +462,8 @@ onMounted(async () => {
             <div class="radio-group">
               <button v-for="opt in [['unknown','保密'],['male','男'],['female','女']]" :key="opt[0]"
                 :class="['radio-btn', { active: editForm.gender === opt[0] }]"
+                :aria-label="`Choose gender ${opt[1]}`"
+                :title="`Choose gender ${opt[1]}`"
                 @click="editForm.gender = opt[0] as any">{{ opt[1] }}</button>
             </div>
           </div>

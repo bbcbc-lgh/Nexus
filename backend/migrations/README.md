@@ -6,6 +6,7 @@ This project uses the lightweight runner in `migrations/migrate.py`.
 
 - Put migration files in `migrations/versions/`.
 - Name files as `NNNN_short_description.py`.
+- Keep the numeric prefix unique; the runner now aborts on duplicate prefixes such as two `0002_*` files.
 - Each file must expose async `upgrade(conn)` and `downgrade(conn)`.
 - Prefer idempotent DDL:
   - Use `CREATE TABLE IF NOT EXISTS` where MySQL supports it.
