@@ -51,6 +51,10 @@ const DEFAULT_AVATARS = [
 ]
 
 const currentAvatar = computed(() => auth.userInfo?.avatar || '')
+const showUsernameTag = computed(() => {
+  const u = auth.userInfo
+  return !!u?.nickname && u.nickname !== u.username
+})
 
 function sourceMeta(source?: string | null) {
   return SOURCE_META[source || ''] || { label: 'AI', color: 'var(--brand)' }
@@ -252,7 +256,7 @@ onMounted(async () => {
       <div class="user-info">
         <p class="username">{{ auth.userInfo?.nickname || auth.userInfo?.username || '—' }}</p>
         <div class="user-tags">
-          <span class="tag mono">@{{ auth.userInfo?.username }}</span>
+          <span v-if="showUsernameTag" class="tag mono">@{{ auth.userInfo?.username }}</span>
           <span class="tag" v-if="auth.userInfo?.gender !== 'unknown'">{{ genderLabel(auth.userInfo?.gender || '') }}</span>
         </div>
         <p class="bio">{{ auth.userInfo?.bio || '这个人很懒，什么都没留下~' }}</p>
