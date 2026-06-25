@@ -11,7 +11,7 @@ from utils.security import get_current_user
 router = APIRouter(prefix="/api/news", tags=["news"])
 
 # 固定数据源列表，与爬虫 source_platform 字段对应
-SOURCES = [
+FALLBACK_SOURCES = [
     {"id": "all",        "name": "全部"},
     {"id": "hackernews", "name": "Hacker News"},
     {"id": "openai",     "name": "OpenAI Blog"},
@@ -21,8 +21,18 @@ SOURCES = [
 
 # 获取数据源列表
 @router.get("/categories", summary="获取新闻分类")
-async def get_category():
-    return success_response(SOURCES)
+async def get_category(db: AsyncSession = Depends(get_db)):
+    try:
+        result = await db.execute(text("""
+            SELECT platform, name
+            FROM news_source
+            WHERE enabled = 1
+            ORDER BY trust_tier ASC, id ASC
+        """))
+        sources = [{"id": row["platform"], "name": row["name"]} for row in result.mappings().all()]
+        return success_response([{"id": "all", "name": "全部"}, *sources])
+    except Exception:
+        return success_response(FALLBACK_SOURCES)
 
 # 获取新闻列表
 @router.get("/list", summary="获取新闻列表")

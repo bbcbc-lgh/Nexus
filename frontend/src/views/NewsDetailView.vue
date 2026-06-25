@@ -11,6 +11,7 @@ import { voteApi, type VoteResult } from '@/api/vote'
 import { commentApi, type CommentItem } from '@/api/comment'
 import { useAuthStore } from '@/stores/authStore'
 import { useNewsStore } from '@/stores/newsStore'
+import { sourceMeta } from '@/utils/sourceMeta'
 
 const route = useRoute()
 const router = useRouter()
@@ -135,15 +136,6 @@ const fontSizePx = computed(() => {
   return (opt?.value ?? 15) + 'px'
 })
 
-const SOURCE_META: Record<string, { label: string; color: string }> = {
-  'hackernews': { label: 'HN',        color: 'var(--hn)' },
-  'openai':     { label: 'OpenAI',    color: 'var(--openai)' },
-  'google_ai':  { label: 'Google AI', color: 'var(--google)' },
-  'mit':        { label: 'MIT',       color: 'var(--mit-fg)' },
-}
-function sourceMeta(s: string) {
-  return SOURCE_META[s] || { label: s, color: 'var(--brand)' }
-}
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })

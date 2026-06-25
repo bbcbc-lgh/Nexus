@@ -7,6 +7,7 @@ import { historyApi, type HistoryItem } from '@/api/history'
 import { userApi } from '@/api/user'
 import { folderApi, type FolderItem } from '@/api/favoriteFolder'
 import { followApi, type FollowedAuthor } from '@/api/follow'
+import { sourceMeta } from '@/utils/sourceMeta'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -37,13 +38,6 @@ const folderCreateMode = ref(false)
 const folderCreateName = ref('')
 const followedAuthors = ref<FollowedAuthor[]>([])
 
-const SOURCE_META: Record<string, { label: string; color: string }> = {
-  hackernews: { label: 'HN', color: 'var(--hn)' },
-  openai: { label: 'OpenAI', color: 'var(--openai)' },
-  google_ai: { label: 'Google AI', color: 'var(--google)' },
-  mit: { label: 'MIT', color: 'var(--mit-fg)' },
-}
-
 const DEFAULT_AVATARS = [
   { label: 'Amber', url: 'https://api.dicebear.com/9.x/initials/svg?seed=Nexus&backgroundColor=c8860a&fontFamily=Georgia&fontWeight=700' },
   { label: 'Ink', url: 'https://api.dicebear.com/9.x/initials/svg?seed=AI&backgroundColor=1a1612&fontFamily=Georgia&fontWeight=700' },
@@ -57,10 +51,6 @@ const showUsernameTag = computed(() => {
   const u = auth.userInfo
   return !!u?.nickname && u.nickname !== u.username
 })
-
-function sourceMeta(source?: string | null) {
-  return SOURCE_META[source || ''] || { label: 'AI', color: 'var(--brand)' }
-}
 
 function timeAgo(s: string): string {
   if (!s) return ''

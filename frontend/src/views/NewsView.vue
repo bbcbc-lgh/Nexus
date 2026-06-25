@@ -6,6 +6,7 @@ import { searchHistoryApi, type SearchHistoryItem } from '@/api/searchHistory'
 import { tagApi, type TopicTag } from '@/api/topicTag'
 import { favoriteApi } from '@/api/favorite'
 import { queueApi } from '@/api/queue'
+import { sourceMeta } from '@/utils/sourceMeta'
 
 const news = useNewsStore()
 const refreshing = ref(false)
@@ -24,12 +25,11 @@ const searchTotal = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 // 高级搜索筛选
-const SOURCE_FILTERS = [
-  { key: 'hackernews', label: 'HN' },
-  { key: 'openai',     label: 'OpenAI' },
-  { key: 'google_ai',  label: 'Google' },
-  { key: 'mit',        label: 'MIT' },
-] as const
+const sourceFilters = computed(() =>
+  news.categories
+    .filter((cat) => cat.id !== 'all')
+    .map((cat) => ({ key: cat.id, label: sourceMeta(cat.id).label || cat.name }))
+)
 const TIME_FILTERS: { key: TimeRange; label: string }[] = [
   { key: 'all',   label: '全部' },
   { key: 'day',   label: '今天' },
@@ -202,17 +202,6 @@ async function handleRefresh() {
   } finally {
     refreshing.value = false
   }
-}
-
-const SOURCE_META: Record<string, { label: string; color: string; key: string; bg: string }> = {
-  'hackernews': { label: 'HN',        color: 'var(--hn)',     key: 'hn',     bg: 'rgba(224,93,0,0.08)' },
-  'openai':     { label: 'OpenAI',    color: 'var(--openai)', key: 'openai', bg: 'rgba(13,138,106,0.08)' },
-  'google_ai':  { label: 'Google AI', color: 'var(--google)', key: 'google', bg: 'rgba(26,115,232,0.08)' },
-  'mit':        { label: 'MIT',       color: 'var(--mit-fg)', key: 'mit',    bg: 'rgba(155,28,46,0.08)' },
-}
-
-function sourceMeta(source: string) {
-  return SOURCE_META[source] || { label: '?', color: 'var(--brand)', key: 'default', bg: 'var(--bg-elevated)' }
 }
 
 function timeAgo(dateStr: string): string {
@@ -407,7 +396,7 @@ async function menuQueue() {
         <div class="filter-row">
           <span class="filter-label">来源</span>
           <div class="filter-chips">
-            <button v-for="s in SOURCE_FILTERS" :key="s.key"
+            <button v-for="s in sourceFilters" :key="s.key"
               :class="['fchip', { active: selectedSources.includes(s.key) }]"
               @click="toggleSource(s.key)">{{ s.label }}</button>
           </div>

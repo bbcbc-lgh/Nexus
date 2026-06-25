@@ -4,8 +4,22 @@ from datetime import datetime, timedelta
 from models.news import Category, News
 from sqlalchemy import exists
 
-ALL_SOURCE_PLATFORMS = ("hackernews", "openai", "google_ai", "mit")
+FALLBACK_SOURCE_PLATFORMS = ("hackernews", "openai", "google_ai", "mit")
 TIME_RANGE_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365}
+
+
+async def get_enabled_source_platforms(db: AsyncSession) -> list[str]:
+    try:
+        result = await db.execute(text("""
+            SELECT platform
+            FROM news_source
+            WHERE enabled = 1
+            ORDER BY trust_tier ASC, id ASC
+        """))
+        platforms = [row[0] for row in result.all()]
+        return platforms or list(FALLBACK_SOURCE_PLATFORMS)
+    except Exception:
+        return list(FALLBACK_SOURCE_PLATFORMS)
 
 # 分类列表
 async def get_category(skip: int = 0, limit: int = 100, db: AsyncSession = None):
@@ -22,7 +36,7 @@ async def get_list(
     if source is None:
         bucket_limit = skip + limit
         buckets = {}
-        for platform in ALL_SOURCE_PLATFORMS:
+        for platform in await get_enabled_source_platforms(db):
             result = await db.execute(
                 select(News)
                 .where(News.source_platform == platform)
@@ -32,7 +46,7 @@ async def get_list(
             buckets[platform] = result.scalars().all()
 
         platforms = sorted(
-            (platform for platform in ALL_SOURCE_PLATFORMS if buckets[platform]),
+            (platform for platform in buckets if buckets[platform]),
             key=lambda platform: buckets[platform][0].publish_time,
             reverse=True,
         )

@@ -2,23 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { queueApi, type QueueItem } from '@/api/queue'
+import { sourceMeta } from '@/utils/sourceMeta'
 
 const router = useRouter()
 const queueList = ref<QueueItem[]>([])
 const page = ref(1)
 const hasMore = ref(true)
 const loading = ref(false)
-
-const SOURCE_META: Record<string, { label: string; color: string }> = {
-  hackernews: { label: 'HN', color: 'var(--hn)' },
-  openai: { label: 'OpenAI', color: 'var(--openai)' },
-  google_ai: { label: 'Google AI', color: 'var(--google)' },
-  mit: { label: 'MIT', color: 'var(--mit-fg)' },
-}
-
-function sourceMeta(source?: string | null) {
-  return SOURCE_META[source || ''] || { label: 'AI', color: 'var(--brand)' }
-}
 
 function timeAgo(s: string): string {
   if (!s) return ''

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { newsApi, type NewsItem } from '@/api/news'
 import { followApi } from '@/api/follow'
 import { useAuthStore } from '@/stores/authStore'
+import { sourceMeta } from '@/utils/sourceMeta'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,17 +19,6 @@ const loading = ref(false)
 const loadingMore = ref(false)
 const following = ref(false)
 const followLoading = ref(false)
-
-const SOURCE_META: Record<string, { label: string; color: string }> = {
-  hackernews: { label: 'HN',        color: '#E05D00' },
-  openai:     { label: 'OpenAI',    color: '#0D8A6A' },
-  google_ai:  { label: 'Google AI', color: '#1A73E8' },
-  mit:        { label: 'MIT',       color: '#C0364D' },
-}
-
-function sourceMeta(s: string | null) {
-  return SOURCE_META[s ?? ''] ?? { label: s ?? '', color: '#888' }
-}
 
 function formatDate(t: string) {
   return new Date(t).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })
