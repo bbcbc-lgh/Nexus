@@ -2,6 +2,7 @@
 采集器基类，定义公共接口和入库逻辑
 """
 import hashlib
+import re
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -10,6 +11,13 @@ from utils.translator import translate_to_zh
 
 def md5(s: str) -> str:
     return hashlib.md5(s.encode()).hexdigest()
+
+
+def _normalize_title(title: str) -> str:
+    text = title.lower().strip()
+    text = re.sub(r"https?://\S+", "", text)
+    text = re.sub(r"[\W_]+", "", text, flags=re.UNICODE)
+    return text
 
 
 async def save_news(db: AsyncSession, *, title: str, description: str = '',
@@ -31,6 +39,19 @@ async def save_news(db: AsyncSession, *, title: str, description: str = '',
     )
     if result.fetchone():
         return False
+
+    title_key = _normalize_title(title)
+    if title_key:
+        recent = await db.execute(text("""
+            SELECT title
+            FROM news
+            WHERE publish_time >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            ORDER BY publish_time DESC
+            LIMIT 500
+        """))
+        for (existing_title,) in recent.all():
+            if _normalize_title(existing_title or "") == title_key:
+                return False
 
     # 翻译（并发调用三个字段，失败不影响入库）
     title_zh, description_zh, content_zh = await _translate_fields(title, description, content)

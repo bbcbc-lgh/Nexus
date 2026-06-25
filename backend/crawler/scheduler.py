@@ -29,6 +29,10 @@ app.conf.beat_schedule = {
         "task": "crawler.scheduler.task_fetch_arxiv",
         "schedule": crontab(minute=10, hour="*/4"),
     },
+    "fetch-github-every-6h": {
+        "task": "crawler.scheduler.task_fetch_github",
+        "schedule": crontab(minute=20, hour="*/6"),
+    },
 }
 app.conf.timezone = "Asia/Shanghai"
 
@@ -77,4 +81,18 @@ def task_fetch_arxiv():
 
     count = _run(_inner())
     print(f"[arXiv] inserted {count}")
+    return count
+
+
+@app.task(name="crawler.scheduler.task_fetch_github")
+def task_fetch_github():
+    from config.database_conf import AsyncSessionLocal
+    from crawler.github_fetcher import fetch_github_ai
+
+    async def _inner():
+        async with AsyncSessionLocal() as db:
+            return await fetch_github_ai(db)
+
+    count = _run(_inner())
+    print(f"[GitHub] inserted {count}")
     return count
