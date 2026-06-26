@@ -40,6 +40,9 @@ _REFUSAL_PATTERNS = (
     "please provide",
     "translation services",
     "ai-powered development environment",
+    "i don't see a news summary",
+    "i do not see a news summary",
+    "could you please share the text",
     "provided only contains",
     "copyrighted",
     "full article from a blog",
@@ -71,6 +74,20 @@ _PREFACE_PATTERNS = (
     r"^翻译如下[:：]\s*",
 )
 
+_SELF_TALK_PATTERNS = (
+    r"我注意到[你您]提供的(?:文本|内容)",
+    r"[你您]提供的(?:文本|内容)很短",
+    r"我(?:会|来)帮[你您]翻译",
+    r"i don't see a news summary",
+    r"i do not see a news summary",
+    r"could you please share the text",
+)
+
+_SALVAGE_PREFACE_PATTERNS = (
+    r"^我注意到[你您]提供的(?:文本|内容)[^。\n]{0,120}(?:我(?:会|来)帮[你您]翻译)[:：]\s*",
+    r"^我(?:会|来)帮[你您]翻译[:：]\s*",
+)
+
 
 def _plain_text(text: str) -> str:
     text = re.sub(r"<[^>]+>", " ", text)
@@ -93,12 +110,17 @@ def _strip_model_preface(text: str) -> str:
     cleaned = text.strip()
     for pattern in _PREFACE_PATTERNS:
         cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+    for pattern in _SALVAGE_PREFACE_PATTERNS:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"^\s*\*\*(.*?)\*\*\s*$", r"\1", cleaned.strip(), flags=re.DOTALL)
     return cleaned.strip()
 
 
 def _is_bad_translation(text: str, field: str) -> bool:
     normalized = re.sub(r"\s+", " ", text).strip().lower()
     if not normalized:
+        return True
+    if any(re.search(pattern, normalized, flags=re.IGNORECASE) for pattern in _SELF_TALK_PATTERNS):
         return True
     if any(pattern in normalized for pattern in _REFUSAL_PATTERNS):
         return True
