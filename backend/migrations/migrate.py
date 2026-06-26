@@ -28,7 +28,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncConnection
 from config.env import get
 
-DATABASE_URL = get("DATABASE_URL", "mysql+aiomysql://root:password@localhost:3306/news_app?charset=utf8mb4")
+DATABASE_URL = get("DATABASE_URL", "mysql+aiomysql://root:password@localhost:3306/nexus_ai_news?charset=utf8mb4")
 VERSIONS_DIR = Path(__file__).parent / "versions"
 
 # 迁移记录表，用于追踪哪些迁移已经执行过

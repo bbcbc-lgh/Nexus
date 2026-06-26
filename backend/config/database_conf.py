@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from config.env import get
 
 # 数据库连接 URL，从环境变量读取，避免密码硬编码到代码里
-ASYNC_DATABASE_URL = get("DATABASE_URL", "mysql+aiomysql://root:password@localhost:3306/news_app?charset=utf8mb4")
+ASYNC_DATABASE_URL = get("DATABASE_URL", "mysql+aiomysql://root:password@localhost:3306/nexus_ai_news?charset=utf8mb4")
 SQL_ECHO = get("SQL_ECHO", "false").lower() in {"1", "true", "yes", "on"}
 
 # 创建异步引擎

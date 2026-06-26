@@ -27,6 +27,7 @@ from utils.response import http_exception_handler, validation_exception_handler
 
 FETCH_INTERVAL = 2 * 60 * 60  # 2小时
 TOKEN_CLEANUP_INTERVAL = 24 * 60 * 60  # 24小时
+ENABLE_AUTO_FETCH = get("ENABLE_AUTO_FETCH", "true").lower() in {"1", "true", "yes", "on"}
 FETCH_LOCK = asyncio.Lock()
 
 
@@ -72,10 +73,11 @@ async def _cleanup_tokens():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    fetch_task = asyncio.create_task(_scheduler_loop())
+    fetch_task = asyncio.create_task(_scheduler_loop()) if ENABLE_AUTO_FETCH else None
     cleanup_task = asyncio.create_task(_cleanup_tokens())
     yield
-    fetch_task.cancel()
+    if fetch_task:
+        fetch_task.cancel()
     cleanup_task.cancel()
 
 
