@@ -141,8 +141,8 @@ http://localhost:8000/docs
 
 ```powershell
 cd frontend
-pnpm install
-pnpm run dev
+npm install
+npm run dev
 ```
 
 前端默认地址：
@@ -209,7 +209,7 @@ python -m pytest
 
 ```powershell
 cd frontend
-pnpm run build
+npm run build
 ```
 
 ## 设计要点
