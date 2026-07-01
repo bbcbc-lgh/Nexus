@@ -1,191 +1,220 @@
-# Nexus AI 新闻系统
+# Nexus AI 新闻聚合系统
 
-一个个人自用的 AI 资讯聚合 App。后端使用 FastAPI + MySQL，前端使用 Vue 3 + TypeScript + Pinia + Vite。系统会定时采集多个 AI/科技信息源，入库时翻译为中文，并提供阅读、搜索、收藏、稍后阅读、评论、投票、阅读统计等功能。
+Nexus 是一个面向技术资讯阅读场景的 AI 新闻聚合系统。系统会从 OpenAI News、arXiv、Hacker News、GitHub AI、InfoQ 等多个来源采集 AI/科技资讯，完成清洗、去重、中文翻译、全文搜索、推荐分发和用户互动，帮助用户高效浏览持续更新的技术内容。
 
-## 当前状态
+项目采用 FastAPI + MySQL + Vue 3 + TypeScript 构建，后端负责采集、翻译、入库、检索和用户相关 API，前端提供新闻列表、详情阅读、搜索筛选、收藏、稍后阅读、评论、投票、阅读统计和作者关注等功能。
 
-- 项目定位：单人自用，不走多人产品化和 PR 流程。
-- 后端：FastAPI 异步接口，MySQL 持久化，轻量迁移脚本。
-- 前端：移动端优先，同时适配桌面侧边栏。
-- 采集：应用启动后自动后台采集，每 2 小时运行一次，也支持手动触发。
-- 翻译：入库时调用 Haiku 模型翻译，已加入翻译前言/模型自言自语过滤。
-- 搜索：MySQL 全文索引优先，LIKE 降级。
+## 功能特性
+
+- 多源资讯采集：支持 RSS、arXiv、Hacker News JSON API 和 GitHub API。
+- 入库清洗去重：基于 `source_url`、标题 hash 和标题归一化策略减少重复内容。
+- AI 中文翻译：入库时生成中文标题、摘要和正文，并对翻译失败、空正文、异常响应做降级处理。
+- 新闻阅读体验：支持来源切换、分页加载、详情阅读、原文链接、相关新闻和阅读进度。
+- 搜索与发现：支持 MySQL 全文索引搜索、搜索历史、搜索建议和高级筛选。
+- 个性化能力：结合阅读历史、收藏行为、主题标签和作者关注提供推荐内容。
+- 用户互动：支持注册登录、收藏文件夹、稍后阅读、评论、点赞/点踩和阅读统计。
+- 自动采集任务：应用启动后可按固定间隔后台采集，也支持通过接口手动触发刷新。
 
 ## 技术栈
 
-| 层 | 技术 |
-|---|---|
-| 后端 | Python、FastAPI、SQLAlchemy Async、aiomysql、MySQL |
-| 前端 | Vue 3、TypeScript、Pinia、Vue Router、Vite |
-| 采集 | httpx、feedparser、asyncio 后台任务 |
-| 翻译 | Haiku 兼容接口，使用 httpx 直连代理 |
-| 测试 | pytest、FastAPI 集成测试 |
+后端：
+
+- Python
+- FastAPI
+- SQLAlchemy Async
+- aiomysql / PyMySQL
+- MySQL
+- httpx
+- feedparser
+- pytest
+
+前端：
+
+- Vue 3
+- TypeScript
+- Vite
+- Pinia
+- Vue Router
+
+外部服务：
+
+- Anthropic/OpenAI 兼容翻译接口
+- RSS / arXiv / Hacker News / GitHub API
+- Redis（可选，用于扩展采集调度或缓存能力）
 
 ## 数据源
 
-数据源配置存放在 `news_source` 表，接口 `/api/news/categories` 会读取启用源。当前已支持：
+当前项目支持的数据源包括：
 
-| source_platform | 名称 | 类型 |
+| 来源标识 | 名称 | 类型 |
 |---|---|---|
 | `openai` | OpenAI News | RSS |
 | `google_ai` | Google AI Blog | RSS |
 | `huggingface` | Hugging Face Blog | RSS |
-| `arxiv_ai` | arXiv AI | API/RSS |
+| `arxiv_ai` | arXiv AI | API / RSS |
 | `techcrunch_ai` | TechCrunch AI | RSS |
-| `mit` | MIT Tech Review | RSS |
+| `mit` | MIT Technology Review | RSS |
 | `infoq_cn` | InfoQ 中文 | RSS |
 | `hackernews` | Hacker News | JSON API |
 | `github_ai` | GitHub AI | GitHub API |
 
-## 目录结构
+数据源配置存储在 `news_source` 表中，前端通过 `/api/news/categories` 获取启用来源。
+
+## 项目结构
 
 ```text
-News_APP/
+.
 ├── backend/
-│   ├── config/              # 数据库、环境变量等配置
-│   ├── crawler/             # RSS/HN/arXiv/GitHub 采集器
-│   ├── crud/                # 数据库访问逻辑
-│   ├── migrations/          # 轻量迁移器与版本脚本
+│   ├── config/              # 数据库、环境变量和缓存配置
+│   ├── crawler/             # RSS、Hacker News、arXiv、GitHub 采集器
+│   ├── crud/                # 数据访问逻辑
+│   ├── docs/                # 后端与接口设计文档
+│   ├── migrations/          # 数据库迁移脚本
 │   ├── models/              # SQLAlchemy ORM 模型
 │   ├── routers/             # FastAPI 路由
-│   ├── schemas/             # Pydantic schema
+│   ├── schemas/             # Pydantic Schema
 │   ├── tests/               # pytest 测试
-│   ├── utils/               # 响应、安全、翻译、内容清洗
-│   └── main.py              # FastAPI 入口，含定时采集任务
-├── frontend/
-│   ├── src/api/             # API client
-│   ├── src/router/          # 路由
-│   ├── src/stores/          # Pinia store
-│   ├── src/utils/           # 来源元信息等工具
-│   └── src/views/           # 页面
-├── UpGrade.md               # 功能升级路线图与暂缓记录
-└── README.md
+│   ├── utils/               # 响应、鉴权、翻译和内容清洗工具
+│   ├── requirements.txt
+│   └── main.py              # FastAPI 应用入口
+└── frontend/
+    ├── src/
+    │   ├── api/             # 前端 API client
+    │   ├── router/          # 页面路由
+    │   ├── stores/          # Pinia 状态管理
+    │   ├── utils/           # 来源元信息等工具
+    │   └── views/           # 页面视图
+    └── package.json
 ```
 
 ## 本地运行
 
-### 1. 后端环境
+### 1. 准备数据库
 
-```powershell
-cd E:\News_APP\backend
-.venv\Scripts\activate
-pip install -r requirements.txt
+创建 MySQL 数据库，例如：
+
+```sql
+CREATE DATABASE nexus_ai_news DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-后端配置来自 `backend/.env`。不要把 `.env` 提交进仓库。常用配置：
+### 2. 配置后端环境变量
+
+在 `backend/.env` 中配置：
 
 ```env
-DATABASE_URL=mysql+aiomysql://root:password@localhost:3306/news_app?charset=utf8mb4
+DATABASE_URL=mysql+aiomysql://root:password@localhost:3306/nexus_ai_news?charset=utf8mb4
 ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8100
 ENABLE_AUTO_FETCH=true
-ANTHROPIC_API_KEY=your_key
-ANTHROPIC_BASE_URL=https://your-proxy.example.com/v1
+
+ANTHROPIC_API_KEY=
+ANTHROPIC_BASE_URL=
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
 ```
 
-注意：翻译代理的 `base_url` 如果已经包含 `/v1`，代码会按当前项目逻辑处理；不要改用 Anthropic SDK，避免重复拼接 `/v1`。
+说明：
 
-### 2. 数据库迁移
+- `DATABASE_URL` 是必需配置，用于后端和迁移脚本连接 MySQL。
+- `ANTHROPIC_API_KEY` 和 `ANTHROPIC_BASE_URL` 用于翻译链路；未配置时，翻译相关能力会受限。
+- `ENABLE_AUTO_FETCH=false` 可关闭应用启动后的自动采集任务。
+
+### 3. 安装并启动后端
 
 ```powershell
-cd E:\News_APP\backend
+cd backend
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
 python migrations\migrate.py
-```
-
-迁移脚本规则见 [backend/migrations/README.md](backend/migrations/README.md)。
-
-### 3. 启动后端
-
-```powershell
-cd E:\News_APP\backend
-.venv\Scripts\activate
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-接口文档：http://localhost:8000/docs
+后端接口文档：
 
-### 4. 启动前端
+```text
+http://localhost:8000/docs
+```
+
+### 4. 安装并启动前端
 
 ```powershell
-cd E:\News_APP\frontend
+cd frontend
 pnpm install
 pnpm run dev
 ```
 
-前端地址：http://localhost:5173
+前端默认地址：
+
+```text
+http://localhost:5173
+```
+
+如需指定后端地址，可在 `frontend/.env` 中配置：
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+## 常用接口
+
+新闻与搜索：
+
+```text
+GET  /api/news/categories
+GET  /api/news/list
+GET  /api/news/detail
+GET  /api/news/search
+POST /api/news/refresh
+GET  /api/news/recommend
+```
+
+用户与互动：
+
+```text
+POST /api/user/register
+POST /api/user/login
+GET  /api/user/info
+POST /api/favorite/add
+GET  /api/favorite/list
+POST /api/queue/add
+GET  /api/queue/list
+GET  /api/reading/stats
+POST /api/comments
+POST /api/news/{news_id}/vote
+```
 
 ## 手动采集
 
-应用启动后会自动采集。如果想手动触发全部采集：
+应用启动后会根据 `ENABLE_AUTO_FETCH` 决定是否自动采集。也可以通过接口手动触发：
 
-```powershell
-cd E:\News_APP\backend
-.venv\Scripts\activate
-@'
-import asyncio
-from config.database_conf import AsyncSessionLocal
-from crawler.rss_fetcher import fetch_all_rss
-from crawler.hn_fetcher import fetch_hn
-from crawler.arxiv_fetcher import fetch_arxiv
-from crawler.github_fetcher import fetch_github_ai
-
-async def main():
-    async with AsyncSessionLocal() as db:
-        await fetch_all_rss(db)
-        await fetch_hn(db)
-        await fetch_arxiv(db)
-        await fetch_github_ai(db)
-
-asyncio.run(main())
-'@ | python -
+```text
+POST /api/news/refresh
 ```
 
-也可以在前端点击刷新按钮，调用 `/api/news/refresh` 后台触发。
+如果需要在命令行直接执行采集逻辑，可以参考 `backend/crawler/` 中的各类采集器实现。
 
-## 常用命令
+## 测试与构建
+
+后端测试：
 
 ```powershell
-# 后端测试
-cd E:\News_APP\backend
-.venv\Scripts\activate
+cd backend
+.\.venv\Scripts\activate
 python -m pytest
-
-# 前端生产构建
-cd E:\News_APP\frontend
-pnpm run build
-
-# 查看数据库迁移状态
-cd E:\News_APP\backend
-python migrations\migrate.py --status
 ```
 
-## 主要能力
-
-- 新闻列表：按来源切换、分页加载、搜索与筛选。
-- 新闻详情：中文优先展示、原文链接、相关推荐、阅读进度、字号调节。
-- 用户系统：注册、登录、资料更新、头像上传、退出后 token 失效。
-- 收藏系统：收藏、取消收藏、收藏文件夹、清空当前文件夹。
-- 稍后阅读：加入队列、移出队列。
-- 搜索：搜索历史、搜索建议、高级筛选。
-- 个性化：阅读行为统计、标签、作者关注、基础推荐。
-- 互动：评论、点赞/踩。
-
-## 重要注意事项
-
-- 不要提交 `.env`。
-- 不要在代码里硬编码数据库密码、API key 或 token。
-- MySQL `ADD COLUMN` 不支持 `IF NOT EXISTS`，迁移脚本要查 `information_schema`。
-- `user.id` 与 `news.id` 是 `INT UNSIGNED`，新增外键字段必须保持同类型。
-- `source_platform` 是来源标识，前端颜色与标签映射在 `frontend/src/utils/sourceMeta.ts`。
-- 当前是个人项目，很多面向多人协作、外部部署、灰度发布、Sentry/CDN 的能力在 `UpGrade.md` 中继续暂缓。
-
-## Git 工作流
-
-当前项目直接使用 `master`：
+前端构建：
 
 ```powershell
-git add <指定文件>
-git commit -m "type: 中文说明"
-git push origin master
+cd frontend
+pnpm run build
 ```
 
-不要使用 `git add .`，避免把 `.env` 或临时文件带进提交。
+## 设计要点
+
+- 后端模块按路由、Schema、ORM、CRUD、采集器和工具层拆分，方便扩展新数据源或新交互模块。
+- 采集链路包含失败重试、内容过滤和翻译降级，避免异常数据直接影响展示体验。
+- 搜索优先使用 MySQL 全文索引，在不可用时可降级到普通匹配逻辑。
+- 前端以移动端阅读体验为优先，同时适配桌面端列表和详情阅读场景。
